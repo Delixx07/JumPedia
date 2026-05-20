@@ -1,124 +1,93 @@
-import 'dart:io' show Platform;
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'controllers/todo_controller.dart';
-import 'controllers/theme_controller.dart';
-import 'views/home_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-/// Entry point aplikasi Todo List MVC.
-///
-/// Inisialisasi:
-///   1. `WidgetsFlutterBinding.ensureInitialized()` diperlukan sebelum
-///      operasi async (SharedPreferences, SQLite).
-///   2. ThemeController.loadTheme() dibaca dari SharedPreferences.
-///   3. MultiProvider menyediakan TodoController & ThemeController
-///      ke seluruh widget tree.
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+import 'core/utils/logger.dart';
+import 'firebase_options.dart';
+import 'presentation/screens/splash_screen.dart';
+import 'presentation/screens/login_screen.dart';
+import 'presentation/screens/home_screen.dart';
+import 'presentation/screens/game_screen.dart';
+import 'presentation/screens/game_over_screen.dart';
+import 'presentation/screens/leaderboard_screen.dart';
+import 'presentation/screens/settings_screen.dart';
+import 'services/notification_service.dart';
 
-  // Inisialisasi FFI untuk SQLite di Windows/Linux
-  if (Platform.isWindows || Platform.isLinux) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
-
-  // Inisialisasi ThemeController dan baca tema tersimpan
-  final themeController = ThemeController();
-  await themeController.loadTheme();
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: themeController),
-        ChangeNotifierProvider(create: (_) => TodoController()),
-      ],
-      child: const TodoApp(),
-    ),
-  );
+/// ═══════════════════════════════════════
+/// APP CONFIG — Flutter Flavors
+/// ═══════════════════════════════════════
+class AppConfig {
+  static bool isDev = true;
+  static bool allowScoreReset = true;
+  static String appLabel = 'SDG Eco-Jump';
+  static String firebaseProject = 'sdg-ecojump-dev';
 }
 
-class TodoApp extends StatelessWidget {
-  const TodoApp({super.key});
+/// ═══════════════════════════════════════
+/// ROUTER — Go Router Setup
+/// ═══════════════════════════════════════
+final GoRouter _router = GoRouter(
+  initialLocation: '/',
+  routes: [
+    GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
+    GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+    GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+    GoRoute(path: '/game', builder: (_, __) => const GameScreen()),
+    GoRoute(path: '/game-over', builder: (_, __) => const GameOverScreen()),
+    GoRoute(path: '/leaderboard', builder: (_, __) => const LeaderboardScreen()),
+    GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+  ],
+);
+
+/// ═══════════════════════════════════════
+/// MAIN ENTRY POINT
+/// ═══════════════════════════════════════
+Future<void> mainCommon() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Setup logger
+  AppLogger.init(enabled: AppConfig.isDev);
+
+  // Setup notifications
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+
+  // Firebase Analytics hanya di production
+  if (!AppConfig.isDev) {
+    await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
+    AppLogger.info('Firebase Analytics enabled (prod)');
+  }
+
+  AppLogger.info('App started: ${AppConfig.appLabel} (isDev: ${AppConfig.isDev})');
+
+  runApp(const ProviderScope(child: SdgEcoJumpApp()));
+}
+
+void main() => mainCommon();
+
+/// ═══════════════════════════════════════
+/// ROOT APP WIDGET
+/// ═══════════════════════════════════════
+class SdgEcoJumpApp extends StatelessWidget {
+  const SdgEcoJumpApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final themeController = context.watch<ThemeController>();
-
-    return MaterialApp(
-      title: 'Todo List',
-      debugShowCheckedModeBanner: false,
-
-      // ─── Light Theme ─────────────────────────────────────────────
+    return MaterialApp.router(
+      title: AppConfig.appLabel,
+      debugShowCheckedModeBanner: AppConfig.isDev,
+      routerConfig: _router,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C63FF),
-          brightness: Brightness.light,
-        ),
-        fontFamily: 'Roboto',
-        appBarTheme: const AppBarTheme(
-          centerTitle: false,
-          elevation: 0,
-          scrolledUnderElevation: 2,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        snackBarTheme: const SnackBarThemeData(
-          behavior: SnackBarBehavior.floating,
-        ),
+        brightness: Brightness.dark,
+        colorSchemeSeed: Colors.green,
+        scaffoldBackgroundColor: const Color(0xFF0D1B2A),
       ),
-
-      // ─── Dark Theme ──────────────────────────────────────────────
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C63FF),
-          brightness: Brightness.dark,
-        ),
-        fontFamily: 'Roboto',
-        appBarTheme: const AppBarTheme(
-          centerTitle: false,
-          elevation: 0,
-          scrolledUnderElevation: 2,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        snackBarTheme: const SnackBarThemeData(
-          behavior: SnackBarBehavior.floating,
-        ),
-      ),
-
-      themeMode: themeController.themeMode,
-      home: const HomeScreen(),
     );
   }
 }

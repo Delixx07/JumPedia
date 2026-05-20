@@ -1,0 +1,10 @@
+Placeholder - tambahkan sprite images di sini.
+Rekomendasi assets:
+- player_idle.png (sprite pemain)
+- platform_normal.png
+- platform_moving.png
+- platform_breakable.png
+- book.png (collectible buku)
+- globe.png (collectible bola dunia)
+- obstacle_trash.png (obstacle sampah)
+- background.png (background game)

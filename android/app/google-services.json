@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "573422052827",
+    "project_id": "final-project-pbb-30e0a",
+    "storage_bucket": "final-project-pbb-30e0a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573422052827:android:80dd9e269743a3c63733fe",
+        "android_client_info": {
+          "package_name": "com.example.sdg_eco_jump"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHGyuMhqSm81CcA-6by4CHAG8E_y8rSQ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
