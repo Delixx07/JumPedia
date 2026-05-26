@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/constants/app_constants.dart';
+import '../../core/constants/app_colors.dart';
 import '../../main.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/user_service.dart';
@@ -36,13 +36,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await userService.updateUsername(uid, _usernameController.text.trim());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Username berhasil diupdate!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Username updated successfully!'), backgroundColor: AppColors.success),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.danger),
         );
       }
     } finally {
@@ -54,14 +54,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text('Hapus Akun?', style: TextStyle(color: Colors.white)),
-        content: const Text('Semua data akan dihapus permanen.', style: TextStyle(color: Colors.white70)),
+        backgroundColor: AppColors.bgMid,
+        title: const Text('Delete Account?', style: TextStyle(color: AppColors.textHi)),
+        content: const Text('All your data will be permanently deleted.', style: TextStyle(color: AppColors.textLo)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            child: const Text('Delete', style: TextStyle(color: AppColors.danger)),
           ),
         ],
       ),
@@ -75,7 +75,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.danger),
         );
       }
     } finally {
@@ -96,7 +96,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter, end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D1B2A), Color(0xFF16213E)],
+            colors: [AppColors.bgTop, AppColors.bgMid],
           ),
         ),
         child: SafeArea(
@@ -106,28 +106,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  IconButton(onPressed: () => context.go('/home'), icon: const Icon(Icons.arrow_back_ios, color: Colors.white)),
-                  const Text('Pengaturan', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
+                  IconButton(onPressed: () => context.go('/home'), icon: const Icon(Icons.arrow_back_ios, color: AppColors.textHi)),
+                  const Text('Settings', style: TextStyle(color: AppColors.textHi, fontSize: 24, fontWeight: FontWeight.w800)),
                 ]),
                 const SizedBox(height: 32),
 
                 // Update Username
-                const Text('Update Username', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                const Text('Update Username', style: TextStyle(color: AppColors.textHi, fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _usernameController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.textHi),
                   decoration: InputDecoration(
-                    hintText: 'Username baru',
-                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                    hintText: 'New username',
+                    hintStyle: const TextStyle(color: AppColors.textLo),
                     filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.08),
+                    fillColor: AppColors.bgMid,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    prefixIcon: const Icon(Icons.person, color: Colors.greenAccent),
+                    prefixIcon: const Icon(Icons.person, color: AppColors.primary),
                   ),
                 ),
                 const SizedBox(height: 12),
-                SdgButton(text: 'Simpan', icon: Icons.save, onPressed: _updateUsername, isLoading: _isLoading),
+                SdgButton(text: 'Save', icon: Icons.save, onPressed: _updateUsername, isLoading: _isLoading),
                 const SizedBox(height: 32),
 
                 // Dev-only: Reset High Score
@@ -154,7 +154,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           style: SdgButtonStyle.danger,
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('High score direset (dev only)')),
+                              const SnackBar(content: Text('High score reset (dev only)')),
                             );
                           },
                         ),
@@ -165,11 +165,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
 
                 // Sign Out
-                SdgButton(text: 'Keluar', icon: Icons.logout, style: SdgButtonStyle.secondary, onPressed: _signOut),
+                SdgButton(text: 'Sign Out', icon: Icons.logout, style: SdgButtonStyle.secondary, onPressed: _signOut),
                 const SizedBox(height: 16),
 
                 // Delete Account
-                SdgButton(text: 'Hapus Akun', icon: Icons.delete_forever, style: SdgButtonStyle.danger, onPressed: _deleteAccount),
+                SdgButton(text: 'Delete Account', icon: Icons.delete_forever, style: SdgButtonStyle.danger, onPressed: _deleteAccount),
               ],
             ),
           ),

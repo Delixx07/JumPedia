@@ -1,6 +1,5 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
@@ -9,7 +8,7 @@ import '../../core/utils/logger.dart';
 import '../world/game_world.dart';
 
 /// ═══════════════════════════════════════
-/// OBSTACLE COMPONENT — SDG Eco-Jump
+/// OBSTACLE COMPONENT — JumPedia
 /// ═══════════════════════════════════════
 /// Rintangan berupa sampah plastik yang mengurangi HP player.
 /// Jika player memiliki shield, obstacle tidak memberikan damage.

@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../core/constants/firestore_paths.dart';
 import '../core/utils/logger.dart';
 import '../models/user_model.dart';
 
 /// ═══════════════════════════════════════
-/// USER SERVICE — SDG Eco-Jump
+/// USER SERVICE — JumPedia
 /// ═══════════════════════════════════════
 /// Mengelola operasi CRUD ke koleksi 'users' di Firestore.
 /// Catatan: createUser() dipanggil oleh AuthService saat login pertama.

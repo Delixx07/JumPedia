@@ -1,10 +1,10 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/fun_fact_model.dart';
 import '../services/fun_fact_service.dart';
 
 /// ═══════════════════════════════════════
-/// FUN FACT PROVIDER — SDG Eco-Jump
+/// FUN FACT PROVIDER — JumPedia
 /// ═══════════════════════════════════════
 /// Provider untuk data fun facts dari Firestore.
 /// Digunakan oleh fun_fact_overlay.dart saat player mencapai milestone.

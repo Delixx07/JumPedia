@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../models/leaderboard_model.dart';
 import '../../services/score_service.dart';
 
@@ -24,7 +25,7 @@ class LeaderboardScreen extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D1B2A), Color(0xFF16213E)],
+            colors: [AppColors.bgTop, AppColors.bgMid],
           ),
         ),
         child: SafeArea(
@@ -36,28 +37,28 @@ class LeaderboardScreen extends ConsumerWidget {
                   children: [
                     IconButton(
                       onPressed: () => context.go('/home'),
-                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back_ios, color: AppColors.textHi),
                     ),
                     const Expanded(
                       child: Text('Leaderboard', textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
+                        style: TextStyle(color: AppColors.textHi, fontSize: 24, fontWeight: FontWeight.w800)),
                     ),
                     IconButton(
                       onPressed: () => ref.invalidate(topScoresProvider),
-                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      icon: const Icon(Icons.refresh, color: AppColors.textHi),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 48),
+              const Icon(Icons.emoji_events_rounded, color: AppColors.warn, size: 48),
               const SizedBox(height: 16),
               Expanded(
                 child: scoresAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator(color: Colors.greenAccent)),
-                  error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
+                  loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                  error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.danger))),
                   data: (scores) {
                     if (scores.isEmpty) {
-                      return const Center(child: Text('Belum ada skor', style: TextStyle(color: Colors.white54)));
+                      return const Center(child: Text('No scores yet', style: TextStyle(color: AppColors.textLo)));
                     }
                     return ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -65,20 +66,26 @@ class LeaderboardScreen extends ConsumerWidget {
                       itemBuilder: (context, i) {
                         final entry = scores[i];
                         final rank = i + 1;
-                        final color = rank == 1 ? const Color(0xFFFFD700) : rank == 2 ? const Color(0xFFC0C0C0) : rank == 3 ? const Color(0xFFCD7F32) : Colors.white54;
+                        final rankColor = rank == 1
+                            ? const Color(0xFFFFB300)
+                            : rank == 2
+                                ? const Color(0xFF9E9E9E)
+                                : rank == 3
+                                    ? const Color(0xFFB87333)
+                                    : AppColors.textLo;
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
+                            color: AppColors.bgMid,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: color.withValues(alpha: 0.3)),
+                            border: Border.all(color: rankColor.withValues(alpha: 0.5)),
                           ),
                           child: Row(children: [
-                            Text('#$rank', style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w700)),
+                            Text('#$rank', style: TextStyle(color: rankColor, fontSize: 16, fontWeight: FontWeight.w700)),
                             const SizedBox(width: 16),
-                            Expanded(child: Text(entry.username ?? 'Player', style: const TextStyle(color: Colors.white, fontSize: 16))),
-                            Text('${entry.score}', style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.w800)),
+                            Expanded(child: Text(entry.username ?? 'Player', style: const TextStyle(color: AppColors.textHi, fontSize: 16))),
+                            Text('${entry.score}', style: const TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.w800)),
                           ]),
                         );
                       },

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
@@ -13,7 +13,7 @@ import 'obstacle.dart';
 import 'platform.dart' as game_platform;
 
 /// ═══════════════════════════════════════
-/// PLAYER COMPONENT — SDG Eco-Jump
+/// PLAYER COMPONENT — JumPedia
 /// ═══════════════════════════════════════
 /// SpriteComponent untuk karakter pemain.
 /// Mendukung kontrol tap (kiri/kanan) dan accelerometer (tilt).
@@ -64,10 +64,13 @@ class Player extends SpriteComponent
 
   @override
   FutureOr<void> onLoad() async {
-    // Posisi awal: tengah bawah layar
+    // Posisi awal: tengah bawah layar, cukup tinggi di atas landing
+    // platform (yang ada di y = size.y - 100) supaya gravity sempat
+    // memberikan velocity.y > 0 sebelum tabrakan terjadi — syarat
+    // bounce di onCollisionStart.
     position = Vector2(
       game.size.x / 2 - size.x / 2,
-      game.size.y - 150,
+      game.size.y - 200,
     );
 
     // Tambah hitbox untuk collision detection
@@ -297,6 +300,9 @@ class Player extends SpriteComponent
           isOnGround = true;
           // Lompat otomatis saat menyentuh platform
           jump();
+          // Tandai sudah pernah landing — setelah ini, fall akan
+          // mengurangi HP seperti biasa.
+          game.markPlayerLanded();
 
           // Handle platform breakable
           if (other.type == game_platform.PlatformType.breakable) {

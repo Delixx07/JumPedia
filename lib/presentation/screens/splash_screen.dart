@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_colors.dart';
+
 /// ═══════════════════════════════════════
-/// SPLASH SCREEN — SDG Eco-Jump
+/// SPLASH SCREEN — JumPedia
 /// ═══════════════════════════════════════
 /// Layar pembuka dengan animasi logo dan nama game.
 /// Otomatis navigasi ke login/home setelah 3 detik.
@@ -62,15 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0D1B2A), // Dark navy
-              Color(0xFF1B3A4B), // Deep teal
-              Color(0xFF2E7D32), // Green
-            ],
-          ),
+          gradient: AppColors.heroGradient,
         ),
         child: AnimatedBuilder(
           animation: _controller,
@@ -87,23 +81,28 @@ class _SplashScreenState extends State<SplashScreen>
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.1),
+                        gradient: const RadialGradient(
+                          colors: [
+                            AppColors.primaryLight,
+                            AppColors.primary,
+                          ],
+                        ),
                         border: Border.all(
-                          color: Colors.greenAccent.withValues(alpha: 0.5),
+                          color: Colors.white.withValues(alpha: 0.7),
                           width: 2,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.greenAccent.withValues(alpha: 0.3),
-                            blurRadius: 30,
-                            spreadRadius: 5,
+                            color: AppColors.primary.withValues(alpha: 0.4),
+                            blurRadius: 40,
+                            spreadRadius: 6,
                           ),
                         ],
                       ),
                       child: const Icon(
-                        Icons.eco,
+                        Icons.rocket_launch_rounded,
                         size: 80,
-                        color: Colors.greenAccent,
+                        color: Colors.white,
                       ),
                     ),
 
@@ -111,29 +110,22 @@ class _SplashScreenState extends State<SplashScreen>
 
                     // ─── Title ────────────────────
                     const Text(
-                      'SDG Eco-Jump',
+                      'JumPedia',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 36,
+                        color: AppColors.primary,
+                        fontSize: 40,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 2,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 20,
-                            color: Colors.greenAccent,
-                            offset: Offset(0, 0),
-                          ),
-                        ],
                       ),
                     ),
 
                     const SizedBox(height: 8),
 
                     // ─── Subtitle ────────────────
-                    Text(
-                      'Belajar Sambil Bermain 🌍',
+                    const Text(
+                      'Learn While You Jump 🚀',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: AppColors.textLo,
                         fontSize: 16,
                         fontWeight: FontWeight.w400,
                         letterSpacing: 1,
@@ -143,11 +135,11 @@ class _SplashScreenState extends State<SplashScreen>
                     const SizedBox(height: 48),
 
                     // ─── Loading Indicator ───────
-                    SizedBox(
+                    const SizedBox(
                       width: 40,
                       height: 40,
                       child: CircularProgressIndicator(
-                        color: Colors.greenAccent.withValues(alpha: 0.8),
+                        color: AppColors.primary,
                         strokeWidth: 3,
                       ),
                     ),
@@ -161,15 +153,18 @@ class _SplashScreenState extends State<SplashScreen>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: AppColors.accent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.accent.withValues(alpha: 0.5),
+                        ),
                       ),
                       child: const Text(
-                        'SDG 4 — Pendidikan Berkualitas',
+                        'SDG 4 — Quality Education',
                         style: TextStyle(
-                          color: Colors.greenAccent,
+                          color: AppColors.accent,
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),

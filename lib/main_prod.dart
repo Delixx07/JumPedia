@@ -1,4 +1,4 @@
-import 'main.dart';
+﻿import 'main.dart';
 
 /// ═══════════════════════════════════════
 /// ENTRY POINT — FLAVOR PROD
@@ -10,7 +10,7 @@ import 'main.dart';
 void main() {
   AppConfig.isDev = false;
   AppConfig.allowScoreReset = false;
-  AppConfig.appLabel = 'SDG Eco-Jump';
+  AppConfig.appLabel = 'JumPedia';
   AppConfig.firebaseProject = 'sdg-ecojump-prod';
 
   mainCommon();

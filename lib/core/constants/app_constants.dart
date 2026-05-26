@@ -1,7 +1,7 @@
-/// ═══════════════════════════════════════
-/// APP CONSTANTS — SDG Eco-Jump
-/// ═══════════════════════════════════════
-/// Berisi semua konstanta game: skor, kecepatan, fisika, dan threshold.
+﻿// ═══════════════════════════════════════
+// APP CONSTANTS — JumPedia
+// ═══════════════════════════════════════
+// Berisi semua konstanta game: skor, kecepatan, fisika, dan threshold.
 
 class AppConstants {
   AppConstants._(); // Prevent instantiation
@@ -53,8 +53,11 @@ class AppConstants {
   /// Poin yang didapat per unit ketinggian.
   static const double pointsPerHeight = 0.1;
 
-  /// Jarak ketinggian (unit) sebelum fun fact muncul.
-  static const double funFactInterval = 500.0;
+  /// Selisih skor antar checkpoint fun fact.
+  /// Setiap kali skor pemain naik kelipatan nilai ini, fun fact baru
+  /// di-trigger (mis. di skor 100, 200, 300, ...). Dibuat agak besar
+  /// supaya checkpoint tidak terlalu sering dan reward terasa berarti.
+  static const int funFactScoreInterval = 100;
 
   // ─── Boost Settings ───────────────────
   /// Durasi shield/speed boost dari globe collectible (detik).

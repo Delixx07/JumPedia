@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
@@ -22,7 +22,7 @@ enum CollectibleType {
 }
 
 /// ═══════════════════════════════════════
-/// COLLECTIBLE COMPONENT — SDG Eco-Jump
+/// COLLECTIBLE COMPONENT — JumPedia
 /// ═══════════════════════════════════════
 /// Objek yang bisa dikumpulkan player untuk mendapat poin atau boost.
 /// Buku: +10 poin | Globe: shield/speed boost 5 detik.

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 
 import 'package:flame/components.dart';
@@ -15,9 +15,10 @@ import '../components/collectible.dart';
 import '../components/obstacle.dart';
 import '../components/platform.dart' as game_platform;
 import '../components/player.dart';
+import '../components/sky_background.dart';
 
 /// ═══════════════════════════════════════
-/// GAME WORLD — SDG Eco-Jump
+/// GAME WORLD — JumPedia
 /// ═══════════════════════════════════════
 /// FlameGame utama yang mengelola seluruh game loop:
 /// - Spawn platform, collectible, dan obstacle
@@ -41,6 +42,10 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   /// Player component.
   late Player player;
 
+  /// Background langit + awan parallax — dikunci ke (0,0), tidak ikut
+  /// digeser oleh camera scroll loop.
+  late SkyBackground _sky;
+
   /// Random number generator untuk spawning.
   final Random _rng = Random();
 
@@ -50,8 +55,9 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   /// Total poin ketinggian yang sudah ditambahkan ke score (terpisah dari poin collectible).
   int _heightScoreAdded = 0;
 
-  /// Counter untuk interval fun fact (setiap 500 unit height).
-  int _lastFunFactHeight = 0;
+  /// Skor saat checkpoint fun fact terakhir dipicu. Fun fact berikutnya
+  /// muncul ketika skor mencapai nilai ini + funFactScoreInterval.
+  int _lastFunFactScore = 0;
 
   /// Apakah game sudah selesai (mencegah double game over).
   bool _isGameOver = false;
@@ -61,6 +67,13 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
 
   /// Platform teratas saat ini (untuk spawning platform baru).
   double _topPlatformY = 0;
+
+  /// Apakah player sudah pernah mendarat / lompat dari platform.
+  /// Selama belum pernah, jika player jatuh di luar layar dia tidak mati —
+  /// melainkan di-respawn ke posisi awal. Ini menutup bug di mana player
+  /// kadang spawn sambil "menabrak" platform pertama tanpa sempat bounce,
+  /// lalu langsung jatuh & game over tanpa input apa pun.
+  bool _hasEverLanded = false;
 
   GameWorld({
     required this.ref,
@@ -72,6 +85,11 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   @override
   FutureOr<void> onLoad() async {
     AppLogger.game('GameWorld loading...');
+
+    // ─── Background langit ───────────────
+    // Add paling dulu agar priority -10 selalu render di belakang.
+    _sky = SkyBackground();
+    add(_sky);
 
     // ─── Spawn Platform Awal ─────────────
     // Spawn platform pertama tepat di bawah player sebagai landing pad
@@ -114,12 +132,15 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
     if (playerMidY < screenMidY) {
       final scrollAmount = screenMidY - playerMidY;
 
-      // Geser semua komponen ke bawah (simulasi kamera naik)
+      // Geser semua komponen ke bawah (simulasi kamera naik).
+      // KECUALI background — dia tetap di (0,0) & menangani parallax
+      // sendiri lewat applyScroll() (awan jalan lebih lambat).
       for (final component in children) {
-        if (component is PositionComponent) {
+        if (component is PositionComponent && component is! SkyBackground) {
           component.position.y += scrollAmount;
         }
       }
+      _sky.applyScroll(scrollAmount);
 
       // Track ketinggian absolut dan posisi platform teratas
       _highestY += scrollAmount;
@@ -147,13 +168,15 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
     }
 
     // ─── Fun Fact Trigger ────────────────
-    // Tampilkan fun fact setiap 500 unit height
-    final currentHeight = _highestY.toInt();
-    final nextFactHeight =
-        (_lastFunFactHeight + AppConstants.funFactInterval.toInt());
+    // Tampilkan fun fact setiap kelipatan funFactScoreInterval poin
+    // (mis. di skor 40, 80, 120, ...). Berbasis skor — bukan tinggi —
+    // supaya checkpoint lebih jarang dan reward terasa berarti.
+    final currentScore = ref.read(scoreProvider);
+    final nextFactScore =
+        _lastFunFactScore + AppConstants.funFactScoreInterval;
 
-    if (currentHeight >= nextFactHeight) {
-      _lastFunFactHeight = nextFactHeight;
+    if (currentScore >= nextFactScore) {
+      _lastFunFactScore = nextFactScore;
       _triggerFunFact();
     }
 
@@ -227,7 +250,9 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
 
     final toRemove = <PositionComponent>[];
     for (final component in children) {
-      if (component is PositionComponent && component is! Player) {
+      if (component is PositionComponent &&
+          component is! Player &&
+          component is! SkyBackground) {
         if (component.position.y > threshold) {
           toRemove.add(component);
         }
@@ -246,7 +271,7 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   void _triggerFunFact() {
     _isPausedForFact = true;
     showOverlay('funFact');
-    AppLogger.game('🎓 Fun fact triggered at height: $_highestY');
+    AppLogger.game('🎓 Fun fact triggered at score: $_lastFunFactScore');
   }
 
   /// Resume game setelah fun fact ditutup.
@@ -267,13 +292,39 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
 
   /// Dipanggil saat player jatuh dari layar.
   void onPlayerFellOff() {
-    if (!_isGameOver) {
-      // Set HP ke 0 untuk trigger game over
-      final currentHp = ref.read(hpProvider);
-      for (int i = 0; i < currentHp; i++) {
-        ref.read(hpProvider.notifier).reduceHp();
-      }
+    if (_isGameOver) return;
+
+    // Grace period: kalau player belum pernah mendarat sekalipun di
+    // platform manapun, anggap dia "masih loncat" — respawn ke posisi
+    // awal saja, jangan kurangi HP. Ini menutup bug "spawn → langsung
+    // game over" tanpa input.
+    if (!_hasEverLanded) {
+      _respawnPlayerAtStart();
+      AppLogger.game('Player fell before first landing — respawned safely');
+      return;
     }
+
+    // Set HP ke 0 untuk trigger game over.
+    final currentHp = ref.read(hpProvider);
+    for (int i = 0; i < currentHp; i++) {
+      ref.read(hpProvider.notifier).reduceHp();
+    }
+  }
+
+  /// Tandai bahwa player sudah pernah mendarat di platform.
+  /// Dipanggil dari Player.onCollisionStart saat bounce pertama berhasil.
+  void markPlayerLanded() {
+    _hasEverLanded = true;
+  }
+
+  /// Kembalikan player ke titik spawn awal (di atas landing platform).
+  /// Dipakai saat fall sebelum landing pertama.
+  void _respawnPlayerAtStart() {
+    player.velocity.setValues(0, 0);
+    player.position.setValues(
+      size.x / 2 - player.size.x / 2,
+      size.y - 200,
+    );
   }
 
   /// ═══════════════════════════════════════
@@ -300,6 +351,15 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
       player.activateSpeedBoost(AppConstants.boostDuration);
     }
   }
+
+  /// ═══════════════════════════════════════
+  /// PUBLIC INPUT API (UI controls)
+  /// ═══════════════════════════════════════
+  /// Dipanggil dari on-screen button overlay (mobile) maupun keyboard
+  /// listener di GameScreen (desktop).
+  void playerMoveLeft() => player.moveLeft();
+  void playerMoveRight() => player.moveRight();
+  void playerStop() => player.stopHorizontal();
 
   /// ═══════════════════════════════════════
   /// TAP CONTROLS

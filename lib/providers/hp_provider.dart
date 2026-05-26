@@ -1,9 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/app_constants.dart';
 
 /// ═══════════════════════════════════════
-/// HP PROVIDER — SDG Eco-Jump
+/// HP PROVIDER — JumPedia
 /// ═══════════════════════════════════════
 /// StateNotifierProvider untuk HP (Health Points) player.
 /// HP = 0 berarti game over.

@@ -1,7 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// ═══════════════════════════════════════
-/// SCORE PROVIDER — SDG Eco-Jump
+/// SCORE PROVIDER — JumPedia
 /// ═══════════════════════════════════════
 /// StateNotifierProvider untuk skor real-time dalam game.
 /// Digunakan oleh HUD overlay dan game components.

@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../core/constants/firestore_paths.dart';
 import '../core/utils/logger.dart';
 import '../models/leaderboard_model.dart';
 
 /// ═══════════════════════════════════════
-/// SCORE SERVICE — SDG Eco-Jump
+/// SCORE SERVICE — JumPedia
 /// ═══════════════════════════════════════
 /// Mengelola operasi CRUD ke koleksi 'leaderboard' dan update statistik user.
 /// Setiap method ditandai dengan komentar CRUD operation-nya.

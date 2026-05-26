@@ -1,11 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/app_colors.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/collected_fact_provider.dart';
 import '../../providers/fun_fact_provider.dart';
 import '../world/game_world.dart';
 
 /// ═══════════════════════════════════════
-/// FUN FACT OVERLAY — SDG Eco-Jump
+/// FUN FACT OVERLAY — JumPedia
 /// ═══════════════════════════════════════
 /// Pop-up overlay yang menampilkan fakta edukatif SDG 4
 /// setiap kali player mencapai ketinggian 500 unit.
@@ -28,24 +31,17 @@ class FunFactOverlay extends ConsumerWidget {
           margin: const EdgeInsets.symmetric(horizontal: 32),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF1B5E20), // Dark green
-                Color(0xFF2E7D32), // Green
-              ],
-            ),
+            gradient: AppColors.accentCardGradient,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withValues(alpha: 0.4),
-                blurRadius: 20,
-                spreadRadius: 5,
+                color: AppColors.accent.withValues(alpha: 0.5),
+                blurRadius: 28,
+                spreadRadius: 6,
               ),
             ],
             border: Border.all(
-              color: Colors.greenAccent.withValues(alpha: 0.5),
+              color: AppColors.accent.withValues(alpha: 0.6),
               width: 2,
             ),
           ),
@@ -56,10 +52,10 @@ class FunFactOverlay extends ConsumerWidget {
               const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.school, color: Colors.amber, size: 28),
+                  Icon(Icons.school, color: AppColors.warn, size: 28),
                   SizedBox(width: 8),
                   Text(
-                    'Tahukah Kamu?',
+                    'Did You Know?',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -76,15 +72,15 @@ class FunFactOverlay extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
-                  'SDG 4 — Pendidikan Berkualitas',
+                  'SDG 4 — Quality Education',
                   style: TextStyle(
-                    color: Colors.greenAccent,
+                    color: AppColors.warn,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -94,18 +90,18 @@ class FunFactOverlay extends ConsumerWidget {
               // ─── Fact Content ──────────────
               factsAsync.when(
                 loading: () => const CircularProgressIndicator(
-                  color: Colors.greenAccent,
+                  color: AppColors.warn,
                 ),
                 error: (error, _) => Text(
-                  'Gagal memuat fakta: $error',
-                  style: const TextStyle(color: Colors.red),
+                  'Failed to load facts: $error',
+                  style: const TextStyle(color: AppColors.danger),
                 ),
                 data: (facts) {
                   if (facts.isEmpty) {
                     return const Text(
-                      '258 juta anak dan remaja di seluruh dunia '
-                      'masih tidak bersekolah. Pendidikan berkualitas '
-                      'adalah kunci untuk masa depan yang lebih baik!',
+                      '258 million children and young people around the world '
+                      'are still out of school. Quality education is the key '
+                      'to a better future!',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
@@ -125,11 +121,19 @@ class FunFactOverlay extends ConsumerWidget {
                       ? (unshownFacts..shuffle()).first
                       : (facts..shuffle()).first;
 
-                  // Tandai sebagai sudah ditampilkan
+                  // Tandai sebagai sudah ditampilkan + simpan ke koleksi user.
+                  // CRUD: CREATE — fact ini masuk subcollection collected_facts.
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     ref
                         .read(shownFactsProvider.notifier)
                         .markAsShown(factToShow.factId);
+
+                    final uid = ref.read(currentUserUidProvider);
+                    if (uid != null) {
+                      ref
+                          .read(collectedFactServiceProvider)
+                          .collectFact(uid, factToShow);
+                    }
                   });
 
                   return Text(
@@ -154,15 +158,15 @@ class FunFactOverlay extends ConsumerWidget {
                     game.resumeFromFunFact();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.greenAccent,
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.warn,
+                    foregroundColor: AppColors.bgTop,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
-                    'Lanjut Main! 🚀',
+                    'Keep Playing! 🚀',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_colors.dart';
+
 /// ═══════════════════════════════════════
-/// SDG BUTTON — Widget Tombol Reusable
+/// SDG BUTTON — Widget Tombol Reusable (JumPedia)
 /// ═══════════════════════════════════════
 /// Tombol bergaya premium yang konsisten di seluruh app.
-/// Mendukung primary, secondary, dan danger styles.
+/// Mendukung primary (cyan→magenta), secondary (cyan), dan danger styles.
 
 enum SdgButtonStyle { primary, secondary, danger }
 
@@ -30,19 +32,19 @@ class SdgButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bgColors, textColor, borderColor) = switch (style) {
       SdgButtonStyle.primary => (
-          [const Color(0xFF2E7D32), const Color(0xFF4CAF50)],
+          [AppColors.primary, AppColors.accent],
           Colors.white,
-          Colors.greenAccent.withValues(alpha: 0.3),
+          AppColors.primary.withValues(alpha: 0.4),
         ),
       SdgButtonStyle.secondary => (
-          [const Color(0xFF1A237E), const Color(0xFF3F51B5)],
+          [const Color(0xFF0A2A6E), AppColors.primary],
           Colors.white,
-          Colors.blueAccent.withValues(alpha: 0.3),
+          AppColors.primary.withValues(alpha: 0.35),
         ),
       SdgButtonStyle.danger => (
-          [const Color(0xFFB71C1C), const Color(0xFFF44336)],
+          [const Color(0xFFB71C1C), AppColors.danger],
           Colors.white,
-          Colors.redAccent.withValues(alpha: 0.3),
+          AppColors.danger.withValues(alpha: 0.35),
         ),
     };
 

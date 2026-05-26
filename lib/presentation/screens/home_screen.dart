@@ -2,14 +2,47 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/score_service.dart';
+import '../../services/user_service.dart';
 import '../widgets/sdg_button.dart';
 
 /// ═══════════════════════════════════════
-/// HOME SCREEN — SDG Eco-Jump
+/// HOME SCREEN — JumPedia
 /// ═══════════════════════════════════════
-/// Menu utama game. Menampilkan tombol-tombol navigasi:
-/// Play, Leaderboard, Settings.
+/// Dashboard utama: profil singkat, statistik pemain (best score &
+/// total games), dan menu navigasi (Play, Leaderboard, Settings, Logout).
+
+/// Bundel statistik yang ditampilkan di dashboard.
+class _DashboardStats {
+  final int bestScore;
+  final int totalGames;
+
+  const _DashboardStats({required this.bestScore, required this.totalGames});
+}
+
+/// Provider untuk mengambil statistik dashboard user yang sedang login.
+/// Auto-refresh ketika UID berubah (login/logout).
+final _dashboardStatsProvider =
+    FutureProvider.autoDispose<_DashboardStats?>((ref) async {
+  final uid = ref.watch(currentUserUidProvider);
+  if (uid == null) return null;
+
+  final scoreService = ScoreService();
+  final userService = UserService();
+
+  final bestScoreFuture = scoreService.getUserBestScore(uid);
+  final userFuture = userService.getUser(uid);
+
+  final bestScore = await bestScoreFuture;
+  final user = await userFuture;
+
+  return _DashboardStats(
+    bestScore: bestScore,
+    totalGames: user?.totalGamesPlayed ?? 0,
+  );
+});
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,134 +50,335 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
+    final statsAsync = ref.watch(_dashboardStatsProvider);
 
     return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0D1B2A),
-              Color(0xFF1B3A4B),
-              Color(0xFF2E7D32),
-            ],
-          ),
+          gradient: AppColors.heroGradient,
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              children: [
-                const Spacer(flex: 1),
+          child: RefreshIndicator(
+            color: AppColors.primary,
+            backgroundColor: AppColors.bgMid,
+            onRefresh: () async {
+              ref.invalidate(_dashboardStatsProvider);
+              await ref.read(_dashboardStatsProvider.future);
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 16,
+              ),
+              child: Column(
+                children: [
+                  // ─── Header: Greeting + Logout ────────
+                  _HeaderBar(authState: authState),
 
-                // ─── Logo & Title ────────────
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.08),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.greenAccent.withValues(alpha: 0.2),
-                        blurRadius: 30,
+                  const SizedBox(height: 24),
+
+                  // ─── Hero Mascot ──────────────────────
+                  // Mascot 3D karakter brand JumPedia. Pakai cacheWidth
+                  // supaya asset 6250px tidak menghabiskan memori.
+                  Image.asset(
+                    'assets/images/dashboard_hero.png',
+                    height: 180,
+                    fit: BoxFit.contain,
+                    cacheWidth: 480,
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // "Jum" biru primary, "Pedia" kuning amber.
+                  const Text.rich(
+                    TextSpan(
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
                       ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.eco,
-                    size: 56,
-                    color: Colors.greenAccent,
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                const Text(
-                  'SDG Eco-Jump',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-
-                const SizedBox(height: 4),
-
-                // ─── User Greeting ───────────
-                authState.when(
-                  data: (user) => Text(
-                    'Halo, ${user?.displayName ?? 'Player'}! 👋',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 16,
+                      children: [
+                        TextSpan(
+                          text: 'Jum',
+                          style: TextStyle(color: AppColors.primary),
+                        ),
+                        TextSpan(
+                          text: 'Pedia',
+                          style: TextStyle(color: AppColors.accent),
+                        ),
+                      ],
                     ),
                   ),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
 
-                const Spacer(flex: 2),
+                  const SizedBox(height: 4),
 
-                // ─── Menu Buttons ────────────
-
-                // PLAY
-                SdgButton(
-                  text: 'Mulai Bermain',
-                  icon: Icons.play_arrow_rounded,
-                  onPressed: () => context.go('/game'),
-                ),
-
-                const SizedBox(height: 16),
-
-                // LEADERBOARD
-                SdgButton(
-                  text: 'Leaderboard',
-                  icon: Icons.leaderboard_rounded,
-                  style: SdgButtonStyle.secondary,
-                  onPressed: () => context.go('/leaderboard'),
-                ),
-
-                const SizedBox(height: 16),
-
-                // SETTINGS
-                SdgButton(
-                  text: 'Pengaturan',
-                  icon: Icons.settings_rounded,
-                  style: SdgButtonStyle.secondary,
-                  onPressed: () => context.go('/settings'),
-                ),
-
-                const Spacer(flex: 2),
-
-                // ─── Footer ──────────────────
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    '🌍 SDG 4 — Pendidikan Berkualitas',
+                  const Text(
+                    'Jump high, collect knowledge! 📚',
                     style: TextStyle(
-                      color: Colors.greenAccent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      color: AppColors.textLo,
+                      fontSize: 13,
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 24),
+
+                  // ─── Stats Cards ──────────────────────
+                  _StatsRow(statsAsync: statsAsync),
+
+                  const SizedBox(height: 24),
+
+                  // ─── Menu Buttons ─────────────────────
+                  SdgButton(
+                    text: 'Start Playing',
+                    icon: Icons.play_arrow_rounded,
+                    onPressed: () => context.go('/game'),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  SdgButton(
+                    text: 'Leaderboard',
+                    icon: Icons.leaderboard_rounded,
+                    style: SdgButtonStyle.secondary,
+                    onPressed: () => context.go('/leaderboard'),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  SdgButton(
+                    text: 'Settings',
+                    icon: Icons.settings_rounded,
+                    style: SdgButtonStyle.secondary,
+                    onPressed: () => context.go('/settings'),
+                  ),
+
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Header bar berisi greeting user + tombol logout.
+class _HeaderBar extends ConsumerWidget {
+  final AsyncValue authState;
+  const _HeaderBar({required this.authState});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Row(
+      children: [
+        Expanded(
+          child: authState.when(
+            data: (user) {
+              final name = user?.displayName ?? 'Player';
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hello, $name',
+                    style: const TextStyle(
+                      color: AppColors.textHi,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Text(
+                    'Ready to jump higher today?',
+                    style: TextStyle(
+                      color: AppColors.textLo,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              );
+            },
+            loading: () => const SizedBox(height: 24),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Logout',
+          icon: const Icon(Icons.logout_rounded, color: AppColors.textLo),
+          onPressed: () async {
+            final authService = ref.read(authServiceProvider);
+            await authService.signOut();
+            if (context.mounted) context.go('/login');
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Baris yang menampilkan 2 kartu statistik: best score & total games.
+class _StatsRow extends StatelessWidget {
+  final AsyncValue<_DashboardStats?> statsAsync;
+  const _StatsRow({required this.statsAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    return statsAsync.when(
+      data: (stats) {
+        final best = stats?.bestScore ?? 0;
+        final games = stats?.totalGames ?? 0;
+        return Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.emoji_events_rounded,
+                color: AppColors.warn,
+                label: 'Best Score',
+                value: best.toString(),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.sports_esports_rounded,
+                color: AppColors.accent,
+                label: 'Games Played',
+                value: games.toString(),
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const _StatsRowSkeleton(),
+      error: (_, __) => const Row(
+        children: [
+          Expanded(
+            child: _StatCard(
+              icon: Icons.emoji_events_rounded,
+              color: AppColors.warn,
+              label: 'Best Score',
+              value: '—',
+            ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: _StatCard(
+              icon: Icons.sports_esports_rounded,
+              color: AppColors.accent,
+              label: 'Total Main',
+              value: '—',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatsRowSkeleton extends StatelessWidget {
+  const _StatsRowSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget skel() => Container(
+          height: 84,
+          decoration: BoxDecoration(
+            color: AppColors.bgMid,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: const Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        );
+    return Row(
+      children: [
+        Expanded(child: skel()),
+        const SizedBox(width: 12),
+        Expanded(child: skel()),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+
+  const _StatCard({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.bgMid,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.45), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.12),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: AppColors.textLo,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: AppColors.textHi,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

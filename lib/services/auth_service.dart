@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+﻿import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -6,7 +6,7 @@ import '../core/constants/firestore_paths.dart';
 import '../core/utils/logger.dart';
 
 /// ═══════════════════════════════════════
-/// AUTH SERVICE — SDG Eco-Jump
+/// AUTH SERVICE — JumPedia
 /// ═══════════════════════════════════════
 /// Mengelola autentikasi pengguna menggunakan Firebase Auth + Google Sign-In.
 /// Juga bertanggung jawab membuat dokumen user baru di Firestore saat login pertama.
@@ -86,6 +86,48 @@ class AuthService {
     await docRef.set(userData);
     AppLogger.firestore('CREATE', FirestorePaths.userDoc(user.uid),
         detail: 'User document created');
+  }
+
+  /// ═══════════════════════════════════════
+  /// SIGN IN AS GUEST (anonymous)
+  /// ═══════════════════════════════════════
+  /// Login tanpa akun — progress tersimpan di Firestore selama device
+  /// & instalasi yang sama. Cocok untuk user yang mau coba game dulu
+  /// sebelum sign-in beneran.
+  Future<UserCredential?> signInAsGuest() async {
+    try {
+      final userCredential = await _auth.signInAnonymously();
+
+      if (userCredential.additionalUserInfo?.isNewUser == true) {
+        await _createGuestUserDocument(userCredential.user!);
+      }
+
+      AppLogger.info('Guest login berhasil: ${userCredential.user?.uid}');
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      AppLogger.error('Guest auth error', error: e);
+      rethrow;
+    } catch (e, st) {
+      AppLogger.error('Guest sign-in error', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// // CRUD: CREATE — Dokumen user untuk guest, label "Tamu".
+  Future<void> _createGuestUserDocument(User user) async {
+    final docRef =
+        _firestore.collection(FirestorePaths.usersCollection).doc(user.uid);
+
+    final userData = {
+      FirestorePaths.fieldUid: user.uid,
+      FirestorePaths.fieldUsername: 'Tamu',
+      FirestorePaths.fieldTotalGamesPlayed: 0,
+      FirestorePaths.fieldCreatedAt: FieldValue.serverTimestamp(),
+    };
+
+    await docRef.set(userData);
+    AppLogger.firestore('CREATE', FirestorePaths.userDoc(user.uid),
+        detail: 'Guest user document created');
   }
 
   /// ═══════════════════════════════════════

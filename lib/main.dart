@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/constants/app_colors.dart';
 import 'core/utils/logger.dart';
 import 'firebase_options.dart';
 import 'presentation/screens/splash_screen.dart';
@@ -13,6 +14,8 @@ import 'presentation/screens/game_screen.dart';
 import 'presentation/screens/game_over_screen.dart';
 import 'presentation/screens/leaderboard_screen.dart';
 import 'presentation/screens/settings_screen.dart';
+import 'presentation/screens/fun_facts_screen.dart';
+import 'presentation/screens/main_shell.dart';
 import 'services/notification_service.dart';
 
 /// ═══════════════════════════════════════
@@ -21,7 +24,7 @@ import 'services/notification_service.dart';
 class AppConfig {
   static bool isDev = true;
   static bool allowScoreReset = true;
-  static String appLabel = 'SDG Eco-Jump';
+  static String appLabel = 'JumPedia';
   static String firebaseProject = 'sdg-ecojump-dev';
 }
 
@@ -33,11 +36,27 @@ final GoRouter _router = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-    GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+
+    // Routes di luar shell — fullscreen / modal.
     GoRoute(path: '/game', builder: (_, __) => const GameScreen()),
     GoRoute(path: '/game-over', builder: (_, __) => const GameOverScreen()),
-    GoRoute(path: '/leaderboard', builder: (_, __) => const LeaderboardScreen()),
     GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+
+    // Shell dengan NavigationBar — Home / Fun Facts / Leaderboard.
+    ShellRoute(
+      builder: (context, state, child) => MainShell(child: child),
+      routes: [
+        GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+        GoRoute(
+          path: '/fun-facts',
+          builder: (_, __) => const FunFactsScreen(),
+        ),
+        GoRoute(
+          path: '/leaderboard',
+          builder: (_, __) => const LeaderboardScreen(),
+        ),
+      ],
+    ),
   ],
 );
 
@@ -65,16 +84,16 @@ Future<void> mainCommon() async {
 
   AppLogger.info('App started: ${AppConfig.appLabel} (isDev: ${AppConfig.isDev})');
 
-  runApp(const ProviderScope(child: SdgEcoJumpApp()));
+  runApp(const ProviderScope(child: JumPediaApp()));
 }
 
 void main() => mainCommon();
 
 /// ═══════════════════════════════════════
-/// ROOT APP WIDGET
+/// ROOT APP WIDGET — JumPedia
 /// ═══════════════════════════════════════
-class SdgEcoJumpApp extends StatelessWidget {
-  const SdgEcoJumpApp({super.key});
+class JumPediaApp extends StatelessWidget {
+  const JumPediaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -84,9 +103,21 @@ class SdgEcoJumpApp extends StatelessWidget {
       routerConfig: _router,
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
-        colorSchemeSeed: Colors.green,
-        scaffoldBackgroundColor: const Color(0xFF0D1B2A),
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.light,
+          primary: AppColors.primary,
+          secondary: AppColors.accent,
+          surface: AppColors.bgMid,
+          error: AppColors.danger,
+        ),
+        scaffoldBackgroundColor: AppColors.scaffold,
+        snackBarTheme: const SnackBarThemeData(
+          backgroundColor: AppColors.bgMid,
+          contentTextStyle: TextStyle(color: AppColors.textHi),
+          behavior: SnackBarBehavior.floating,
+        ),
       ),
     );
   }

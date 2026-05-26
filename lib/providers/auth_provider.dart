@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
+﻿import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/auth_service.dart';
 
 /// ═══════════════════════════════════════
-/// AUTH PROVIDER — SDG Eco-Jump
+/// AUTH PROVIDER — JumPedia
 /// ═══════════════════════════════════════
 /// Riverpod providers untuk status autentikasi user.
 /// Meng-expose AuthService dan stream auth state ke seluruh app.

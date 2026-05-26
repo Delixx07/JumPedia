@@ -1,7 +1,7 @@
-import 'dart:developer' as developer;
+﻿import 'dart:developer' as developer;
 
 /// ═══════════════════════════════════════
-/// LOGGER UTILITY — SDG Eco-Jump
+/// LOGGER UTILITY — JumPedia
 /// ═══════════════════════════════════════
 /// Wrapper untuk logging yang bisa diaktifkan/nonaktifkan berdasarkan flavor.
 /// Gunakan AppLogger alih-alih print() agar log bisa dikontrol.

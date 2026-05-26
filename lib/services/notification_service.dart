@@ -1,4 +1,4 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
+﻿import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -6,7 +6,7 @@ import '../core/constants/firestore_paths.dart';
 import '../core/utils/logger.dart';
 
 /// ═══════════════════════════════════════
-/// NOTIFICATION SERVICE — SDG Eco-Jump
+/// NOTIFICATION SERVICE — JumPedia
 /// ═══════════════════════════════════════
 /// Setup Firebase Cloud Messaging + Local Notifications.
 /// Menangani notifikasi foreground, background, dan penyimpanan FCM token.
@@ -30,8 +30,8 @@ class NotificationService {
   /// Channel untuk Android local notifications.
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'sdg_ecojump_channel',
-    'SDG Eco-Jump Notifications',
-    description: 'Notifikasi untuk SDG Eco-Jump game',
+    'JumPedia Notifications',
+    description: 'Notifications for the JumPedia game',
     importance: Importance.high,
   );
 
@@ -115,7 +115,7 @@ class NotificationService {
       // Tampilkan sebagai local notification
       _localNotifications.show(
         notification.hashCode,
-        notification.title ?? 'SDG Eco-Jump',
+        notification.title ?? 'JumPedia',
         notification.body ?? '',
         NotificationDetails(
           android: AndroidNotificationDetails(

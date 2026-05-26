@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
@@ -23,7 +23,7 @@ enum PlatformType {
 }
 
 /// ═══════════════════════════════════════
-/// PLATFORM COMPONENT — SDG Eco-Jump
+/// PLATFORM COMPONENT — JumPedia
 /// ═══════════════════════════════════════
 /// PositionComponent untuk platform yang bisa diinjak player.
 /// Mendukung 3 tipe: normal (statis), moving (bergerak), breakable (hancur).
@@ -33,7 +33,7 @@ class Platform extends PositionComponent with CollisionCallbacks {
   final PlatformType type;
 
   /// Kecepatan horizontal (hanya untuk tipe moving).
-  double _moveSpeed;
+  final double _moveSpeed;
 
   /// Arah gerak horizontal: 1 = kanan, -1 = kiri.
   double _moveDirection = 1;

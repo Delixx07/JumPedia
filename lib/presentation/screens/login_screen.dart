@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
-import '../widgets/sdg_button.dart';
 
 /// ═══════════════════════════════════════
-/// LOGIN SCREEN — SDG Eco-Jump
+/// LOGIN SCREEN — JumPedia
 /// ═══════════════════════════════════════
-/// UI untuk Google Sign-In.
-/// Setelah berhasil login, navigasi ke home screen.
+/// Style minimal & clean light mode:
+/// - Background biru muda pastel
+/// - Mascot besar di tengah
+/// - Heading 2 baris ("Pilih cara / kamu masuk")
+/// - Stack tombol: Google (primary biru solid) + Tamu (outline putih)
+///
+/// Mascot saat ini pakai placeholder. Saat asset gambar tersedia,
+/// ganti `_MascotPlaceholder()` dengan `Image.asset('assets/...png')`.
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -19,181 +25,340 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  bool _isLoading = false;
+  bool _isLoadingGoogle = false;
+  bool _isLoadingGuest = false;
   String? _errorMessage;
 
+  bool get _anyLoading => _isLoadingGoogle || _isLoadingGuest;
+
   Future<void> _handleGoogleSignIn() async {
+    if (_anyLoading) return;
     setState(() {
-      _isLoading = true;
+      _isLoadingGoogle = true;
       _errorMessage = null;
     });
-
     try {
       final authService = ref.read(authServiceProvider);
       final credential = await authService.signInWithGoogle();
-
       if (credential != null && mounted) {
         context.go('/home');
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _errorMessage = 'Gagal masuk: ${e.toString()}';
-        });
+        setState(() => _errorMessage = 'Sign-in failed: ${e.toString()}');
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoadingGoogle = false);
+    }
+  }
+
+  Future<void> _handleGuestSignIn() async {
+    if (_anyLoading) return;
+    setState(() {
+      _isLoadingGuest = true;
+      _errorMessage = null;
+    });
+    try {
+      final authService = ref.read(authServiceProvider);
+      final credential = await authService.signInAsGuest();
+      if (credential != null && mounted) {
+        context.go('/home');
       }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Guest sign-in failed: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingGuest = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0D1B2A),
-              Color(0xFF1B3A4B),
-              Color(0xFF1B5E20),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(flex: 2),
+      backgroundColor: AppColors.scaffold,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
 
-                // ─── Logo ────────────────────
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.08),
-                    border: Border.all(
-                      color: Colors.greenAccent.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.eco,
-                    size: 64,
-                    color: Colors.greenAccent,
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // ─── Title ───────────────────
-                const Text(
-                  'SDG Eco-Jump',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                Text(
-                  'Platformer Edukatif SDG 4',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 14,
-                  ),
-                ),
-
-                const SizedBox(height: 48),
-
-                // ─── Welcome Text ────────────
-                const Text(
-                  'Selamat Datang!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                Text(
-                  'Masuk untuk mulai bermain dan belajar\ntentang Pendidikan Berkualitas',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // ─── Google Sign-In Button ───
-                SdgButton(
-                  text: 'Masuk dengan Google',
-                  icon: Icons.g_mobiledata,
-                  onPressed: _handleGoogleSignIn,
-                  isLoading: _isLoading,
-                ),
-
-                // ─── Error Message ───────────
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.red.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: Colors.red, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 13,
-                            ),
-                          ),
+                      // ─── Mascot ─────────────────────
+                      // Anchor ke atas agar mascot terletak lebih tinggi
+                      // dengan ruang nafas di bawah sebelum heading.
+                      const Expanded(
+                        flex: 6,
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: _MascotPlaceholder(),
                         ),
+                      ),
+
+                      // ─── Heading ────────────────────
+                      const Text(
+                        'Choose how',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.textHi,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const Text(
+                        'you sign in',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.textHi,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // ─── Buttons ────────────────────
+                      _LoginButton(
+                        primary: true,
+                        icon: Icons.g_mobiledata,
+                        iconSize: 30,
+                        label: 'Continue with Google',
+                        isLoading: _isLoadingGoogle,
+                        disabled: _anyLoading && !_isLoadingGoogle,
+                        onPressed: _handleGoogleSignIn,
+                      ),
+                      const SizedBox(height: 12),
+                      _LoginButton(
+                        primary: false,
+                        icon: Icons.person_outline_rounded,
+                        iconSize: 20,
+                        label: 'Play as guest',
+                        isLoading: _isLoadingGuest,
+                        disabled: _anyLoading && !_isLoadingGuest,
+                        onPressed: _handleGuestSignIn,
+                      ),
+
+                      // ─── Error ──────────────────────
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 14),
+                        _ErrorBanner(message: _errorMessage!),
                       ],
-                    ),
-                  ),
-                ],
 
-                const Spacer(flex: 3),
+                      const SizedBox(height: 18),
 
-                // ─── Footer ──────────────────
-                Text(
-                  'SDG 4 — Quality Education 🎓',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    fontSize: 12,
+                      // ─── Footer note ────────────────
+                      const Text(
+                        'Guest mode does not save progress across devices.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.textLo,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                          height: 1.4,
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+                    ],
                   ),
                 ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
 
-                const SizedBox(height: 16),
+// ═══════════════════════════════════════
+// MASCOT
+// ═══════════════════════════════════════
+/// Bubble biru gradient di belakang + mascot 3D di tengahnya (keduanya
+/// center-aligned di Stack). Layout rapi & simetris.
+class _MascotPlaceholder extends StatelessWidget {
+  const _MascotPlaceholder();
+
+  static const double _bubbleSize = 320;
+  // Mascot sedikit lebih besar dari bubble agar tangan & jubah sedikit
+  // overflow dari rim — tapi tubuh utama tetap berada di tengah bubble.
+  static const double _mascotSize = 480;
+
+  @override
+  Widget build(BuildContext context) {
+    // Bubble di-jadiin parent visible. Mascot dibungkus OverflowBox supaya
+    // bisa di-set jauh lebih besar dari _bubbleSize tanpa di-clamp parent
+    // — overflow keluar bubble & layar diperbolehkan.
+    return SizedBox(
+      width: _bubbleSize,
+      height: _bubbleSize,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // Bubble di belakang.
+          Container(
+            width: _bubbleSize,
+            height: _bubbleSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: AppColors.primaryGradient,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.7),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  blurRadius: 40,
+                  spreadRadius: 4,
+                ),
               ],
             ),
           ),
+
+          // Mascot 3D — OverflowBox membebaskan dari constraint parent
+          // (_bubbleSize), jadi _mascotSize bisa berapapun bahkan > layar.
+          OverflowBox(
+            minWidth: 0,
+            minHeight: 0,
+            maxWidth: double.infinity,
+            maxHeight: double.infinity,
+            child: Image.asset(
+              'assets/images/mascot_login.png',
+              width: _mascotSize,
+              height: _mascotSize,
+              fit: BoxFit.contain,
+              cacheWidth: (_mascotSize * 1.6).round(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════
+// LOGIN BUTTON
+// ═══════════════════════════════════════
+class _LoginButton extends StatelessWidget {
+  final bool primary;
+  final IconData icon;
+  final double iconSize;
+  final String label;
+  final bool isLoading;
+  final bool disabled;
+  final VoidCallback onPressed;
+
+  const _LoginButton({
+    required this.primary,
+    required this.icon,
+    required this.iconSize,
+    required this.label,
+    required this.isLoading,
+    required this.disabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = primary ? AppColors.primary : Colors.white;
+    final fg = primary ? Colors.white : AppColors.textHi;
+    final border = primary ? Colors.transparent : AppColors.border;
+
+    return Opacity(
+      opacity: disabled ? 0.5 : 1,
+      child: Material(
+        color: bg,
+        borderRadius: BorderRadius.circular(30),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: (disabled || isLoading) ? null : onPressed,
+          child: Container(
+            width: double.infinity,
+            height: 54,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: border, width: 1.2),
+            ),
+            child: isLoading
+                ? Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        color: fg,
+                        strokeWidth: 2.4,
+                      ),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, color: fg, size: iconSize),
+                      const SizedBox(width: 8),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: fg,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════
+// ERROR BANNER
+// ═══════════════════════════════════════
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+  const _ErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bgMid,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.danger),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.danger,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: AppColors.danger,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

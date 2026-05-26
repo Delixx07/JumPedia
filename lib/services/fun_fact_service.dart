@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../core/constants/firestore_paths.dart';
 import '../core/utils/logger.dart';
 import '../models/fun_fact_model.dart';
 
 /// ═══════════════════════════════════════
-/// FUN FACT SERVICE — SDG Eco-Jump
+/// FUN FACT SERVICE — JumPedia
 /// ═══════════════════════════════════════
 /// Membaca koleksi 'fun_facts' dari Firestore.
 /// Koleksi ini diisi melalui Firebase Console / admin dashboard, bukan dari app.
