@@ -153,13 +153,9 @@ Jumping is automatic — landing on a platform triggers a bounce.
 
 ---
 
-## Notes on Design Decisions
+## Functional Feature that establishes a complete end-to-end connection between the cloud server and the mobile application.
+- Dustin : LeaderBoard & Funfact collection
 
-- **Why a grace period for the first fall?** Players sometimes spawn into a state where the very first platform contact does not trigger a bounce (the collision frame catches before gravity kicks in). To avoid an instant game-over with zero input, the player is respawned (no HP loss) until the first successful landing.
-
-- **Why is the score-based checkpoint at 100 points, not by height?** Originally the game triggered fun facts every 500 pixels of altitude, but this fired too often early on. Tying it to score makes it feel like an earned milestone instead of a random interruption.
-
-- **Why is there an inline Game Over overlay AND a separate `/game-over` route?** Save-to-Firestore can be slow; rather than block on the network before navigating, the inline overlay appears immediately (so the user always has Restart / Home buttons), while the navigation to the dedicated screen happens in parallel. This avoids the "stuck on game over" issue when network is bad.
 
 - **Pastel-blue palette.** All UI surfaces use a single source of truth in `lib/core/constants/app_colors.dart`. Switching the entire app's color theme means editing that one file.
 
