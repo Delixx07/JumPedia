@@ -156,9 +156,6 @@ Jumping is automatic — landing on a platform triggers a bounce.
 ## Functional Feature that establishes a complete end-to-end connection between the cloud server and the mobile application.
 - Dustin : LeaderBoard & Funfact collection
 
-
-- **Pastel-blue palette.** All UI surfaces use a single source of truth in `lib/core/constants/app_colors.dart`. Switching the entire app's color theme means editing that one file.
-
 ---
 
 ## Roadmap / TODO
