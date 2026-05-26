@@ -8,7 +8,7 @@ Jump from platform to platform, collect knowledge, and unlock fun facts about ed
 
 ## What is JumPedia?
 
-JumPedia is a Flutter-based mobile game that blends **arcade-style platforming** with **educational micro-content**. The character — a friendly 3D mascot wearing a graduation cap — bounces upward across procedurally placed platforms while the player collects books and avoids obstacles. Every **100 points** the player earns, the game pauses to reveal an SDG 4 fun fact, which is then saved to the player's personal collection in the cloud.
+JumPedia is a Flutter-based mobile game that blends **arcade-style platforming** with **educational micro-content**. The character is a friendly 3D mascot wearing a graduation cap bounces upward across procedurally placed platforms while the player collects books and avoids obstacles. Every **100 points** the player earns, the game pauses to reveal an SDG 4 fun fact, which is then saved to the player's personal collection in the cloud.
 
 The result is a casual game loop where progression is measured **not just in score, but in knowledge collected**.
 
@@ -21,7 +21,7 @@ The result is a casual game loop where progression is measured **not just in sco
 - **Vertical platformer** with procedurally generated platforms (normal, moving, breakable)
 - **Three control modes**: on-screen left/right buttons (mobile), keyboard A/D or arrow keys (desktop), tilt-aware fallback via accelerometer
 - **Power-ups**: shield (immune to obstacles) and speed boost from globe collectibles
-- **HP system** with 3 hearts — game over when hearts hit zero or the player falls off-screen
+- **HP system** with 3 hearts, game over when hearts hit zero or the player falls off-screen
 - **Animated sky background** with parallax-scrolling clouds for depth perception
 
 ### Educational layer
