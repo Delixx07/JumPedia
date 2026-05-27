@@ -21,6 +21,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadCurrentUsername();
+  }
+
+  Future<void> _loadCurrentUsername() async {
+    final uid = ref.read(currentUserUidProvider);
+    if (uid == null) return;
+    try {
+      final userService = UserService();
+      final user = await userService.getUser(uid);
+      if (user != null && mounted) {
+        _usernameController.text = user.username;
+      }
+    } catch (_) {
+      // ignore errors; controller stays empty
+    }
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     super.dispose();

@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/score_service.dart';
 import '../../services/user_service.dart';
+import '../../models/user_model.dart';
 import '../widgets/sdg_button.dart';
 
 /// ═══════════════════════════════════════
@@ -44,12 +45,20 @@ final _dashboardStatsProvider =
   );
 });
 
+/// Stream provider untuk model user saat ini (real-time)
+final _currentUserModelProvider =
+    StreamProvider.autoDispose<UserModel?>((ref) {
+  final uid = ref.watch(currentUserUidProvider);
+  if (uid == null) return Stream.value(null);
+  final userService = UserService();
+  return userService.streamUser(uid);
+});
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
     final statsAsync = ref.watch(_dashboardStatsProvider);
 
     return Scaffold(
@@ -76,7 +85,7 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   // ─── Header: Greeting + Logout ────────
-                  _HeaderBar(authState: authState),
+                  const _HeaderBar(),
 
                   const SizedBox(height: 24),
 
@@ -168,17 +177,17 @@ class HomeScreen extends ConsumerWidget {
 
 /// Header bar berisi greeting user + tombol logout.
 class _HeaderBar extends ConsumerWidget {
-  final AsyncValue authState;
-  const _HeaderBar({required this.authState});
+  const _HeaderBar();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(_currentUserModelProvider);
     return Row(
       children: [
         Expanded(
-          child: authState.when(
+          child: userAsync.when(
             data: (user) {
-              final name = user?.displayName ?? 'Player';
+              final name = user?.username ?? 'guest player';
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
