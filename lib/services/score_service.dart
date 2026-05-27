@@ -62,9 +62,28 @@ class ScoreService {
     AppLogger.firestore('READ', FirestorePaths.leaderboardCollection,
         detail: 'Fetched top $limit scores');
 
-    return querySnapshot.docs
+    // Map documents to models, then resolve each user reference to get username.
+    final models = querySnapshot.docs
         .map((doc) => LeaderboardModel.fromFirestore(doc))
         .toList();
+
+    // Resolve usernames in parallel for performance.
+    final resolved = await Future.wait(models.map((m) async {
+      try {
+        final userSnap = await m.userId.get();
+        if (userSnap.exists) {
+          final data = userSnap.data() as Map<String, dynamic>?;
+          final username = data?[FirestorePaths.fieldUsername] as String?;
+          return m.copyWith(username: username ?? 'Player');
+        }
+      } catch (e) {
+        AppLogger.firestore('ERROR', FirestorePaths.usersCollection,
+            detail: 'Failed to resolve username for leaderboard entry: $e');
+      }
+      return m.copyWith(username: 'Player');
+    }));
+
+    return resolved;
   }
 
   /// ═══════════════════════════════════════
