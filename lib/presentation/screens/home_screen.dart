@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/score_service.dart';
 import '../../services/user_service.dart';
 import '../../models/user_model.dart';
@@ -54,12 +55,22 @@ final _currentUserModelProvider =
   return userService.streamUser(uid);
 });
 
+// State to indicate if a linking operation is in progress.
+final _isLinkingProvider = StateProvider<bool>((ref) => false);
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(_dashboardStatsProvider);
+    final authState = ref.watch(authStateProvider);
+    final isAnon = authState.when(
+      data: (u) => u?.isAnonymous ?? false,
+      loading: () => false,
+      error: (_, __) => false,
+    );
+    final isLinking = ref.watch(_isLinkingProvider);
 
     return Scaffold(
       body: Container(
@@ -88,6 +99,67 @@ class HomeScreen extends ConsumerWidget {
                   const _HeaderBar(),
 
                   const SizedBox(height: 24),
+
+                  // If the current user is anonymous, show a prompt to link account
+                  if (isAnon) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgMid,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Your account is guest', style: TextStyle(color: AppColors.textHi, fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 6),
+                          const Text('Link to Google to keep your progress across devices.', style: TextStyle(color: AppColors.textLo)),
+                          const SizedBox(height: 8),
+                          SdgButton(
+                            text: 'Link Now with Google',
+                            icon: Icons.link,
+                            isLoading: isLinking,
+                            onPressed: () async {
+                              ref.read(_isLinkingProvider.notifier).state = true;
+                              try {
+                                final authService = ref.read(authServiceProvider);
+                                final result = await authService.linkGuestToGoogle();
+                                if (result != null) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Account linked successfully!'), backgroundColor: AppColors.success),
+                                    );
+                                  }
+                                }
+                              } on FirebaseAuthException catch (e) {
+                                if (context.mounted) {
+                                  if (e.code == 'credential-already-in-use') {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('This Google account is already used by another account.'), backgroundColor: AppColors.danger),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error linking account: ${e.message}'), backgroundColor: AppColors.danger),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error linking account: $e'), backgroundColor: AppColors.danger),
+                                  );
+                                }
+                              } finally {
+                                ref.read(_isLinkingProvider.notifier).state = false;
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
                   // ─── Hero Mascot ──────────────────────
                   // Mascot 3D karakter brand JumPedia. Pakai cacheWidth

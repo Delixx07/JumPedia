@@ -68,6 +68,73 @@ class AuthService {
   }
 
   /// ═══════════════════════════════════════
+  /// LINK GUEST TO GOOGLE
+  /// ═══════════════════════════════════════
+  /// Menghubungkan akun anonymous (guest) yang sedang login dengan akun
+  /// Google. Jika berhasil, username di dokumen Firestore users/{uid}
+  /// diupdate menjadi displayName dari akun Google.
+  Future<UserCredential?> linkGuestToGoogle() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      AppLogger.warning('No current user to link');
+      return null;
+    }
+
+    if (!user.isAnonymous) {
+      AppLogger.warning('Current user is not anonymous; abort linking');
+      return null;
+    }
+
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        AppLogger.debug('Google Sign-In cancelled by user');
+        return null;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Link anonymous account with Google credential
+      final UserCredential linked =
+          await user.linkWithCredential(credential);
+
+      // Jika UID tetap sama, update username di Firestore
+      final linkedUid = linked.user?.uid;
+      if (linkedUid != null && linkedUid == user.uid) {
+        final displayName =
+            linked.user?.displayName ?? googleUser.displayName ?? 'Player';
+        final docRef =
+            _firestore.collection(FirestorePaths.usersCollection).doc(linkedUid);
+        try {
+          await docRef.update({FirestorePaths.fieldUsername: displayName});
+        } catch (e) {
+          // Jika dokumen belum ada, set dengan merge
+          await docRef.set({FirestorePaths.fieldUsername: displayName}, SetOptions(merge: true));
+        }
+      } else {
+        AppLogger.warning(
+            'Linked UID differs from anonymous UID: $linkedUid vs ${user.uid}');
+      }
+
+      AppLogger.info('Guest linked to Google: ${linked.user?.displayName}');
+      return linked;
+    } on FirebaseAuthException catch (e) {
+      AppLogger.error('Linking error', error: e);
+      // Bubble up to UI for handling (e.g., credential-already-in-use)
+      rethrow;
+    } catch (e, st) {
+      AppLogger.error('Unexpected linking error', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// ═══════════════════════════════════════
   /// CREATE USER DOCUMENT
   /// ═══════════════════════════════════════
   /// // CRUD: CREATE — Buat dokumen baru di koleksi 'users' saat login pertama.
