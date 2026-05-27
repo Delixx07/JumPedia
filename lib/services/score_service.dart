@@ -87,6 +87,21 @@ class ScoreService {
   }
 
   /// ═══════════════════════════════════════
+  /// DELETE SCORE
+  /// ═══════════════════════════════════════
+  /// // CRUD: DELETE — Hapus dokumen skor milik user dari leaderboard.
+  Future<void> deleteScore(String userId) async {
+    // CRUD: DELETE
+    await _firestore
+        .collection(FirestorePaths.leaderboardCollection)
+        .doc(userId)
+        .delete();
+
+    AppLogger.firestore('DELETE', FirestorePaths.leaderboardCollection,
+        detail: 'Score deleted for user $userId');
+  }
+
+  /// ═══════════════════════════════════════
   /// INCREMENT GAMES PLAYED
   /// ═══════════════════════════════════════
   /// // CRUD: UPDATE — Update field total_games_played di users/{uid}.
