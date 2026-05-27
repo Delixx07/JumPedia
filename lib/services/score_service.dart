@@ -16,26 +16,34 @@ class ScoreService {
   /// ═══════════════════════════════════════
   /// SAVE SCORE
   /// ═══════════════════════════════════════
-  /// // CRUD: CREATE — Buat dokumen baru di koleksi 'leaderboard'.
-  /// Menyimpan skor dari sesi permainan yang baru selesai.
+  /// // CRUD: UPDATE — Update atau buat dokumen di koleksi 'leaderboard'.
+  /// Menyimpan skor tertinggi dari sesi permainan yang baru selesai.
   Future<void> saveScore(String userId, int score) async {
-    // Buat reference ke dokumen user untuk disimpan sebagai DocumentReference
-    final userRef =
-        _firestore.collection(FirestorePaths.usersCollection).doc(userId);
+    // Cek dulu apakah skor baru lebih baik dari skor lama
+    final currentBest = await getUserBestScore(userId);
 
-    final scoreData = {
-      FirestorePaths.fieldUserId: userRef, // DocumentReference ke users/{uid}
-      FirestorePaths.fieldScore: score,
-      FirestorePaths.fieldTimestamp: FieldValue.serverTimestamp(),
-    };
+    if (score > currentBest) {
+      // Buat reference ke dokumen user untuk disimpan sebagai DocumentReference
+      final userRef =
+          _firestore.collection(FirestorePaths.usersCollection).doc(userId);
 
-    // CRUD: CREATE
-    await _firestore
-        .collection(FirestorePaths.leaderboardCollection)
-        .add(scoreData);
+      final scoreData = {
+        FirestorePaths.fieldUserId: userRef, // DocumentReference ke users/{uid}
+        FirestorePaths.fieldScore: score,
+        FirestorePaths.fieldTimestamp: FieldValue.serverTimestamp(),
+      };
 
-    AppLogger.firestore('CREATE', FirestorePaths.leaderboardCollection,
-        detail: 'Score $score saved for user $userId');
+      // CRUD: UPDATE (menggunakan userId sebagai document ID agar overwrite)
+      await _firestore
+          .collection(FirestorePaths.leaderboardCollection)
+          .doc(userId)
+          .set(scoreData);
+
+      AppLogger.firestore('UPDATE', FirestorePaths.leaderboardCollection,
+          detail: 'New high score $score saved for user $userId');
+    } else {
+      AppLogger.game('Score $score is not better than $currentBest. No update.');
+    }
   }
 
   /// ═══════════════════════════════════════
@@ -64,22 +72,18 @@ class ScoreService {
   /// ═══════════════════════════════════════
   /// // CRUD: READ — Baca skor tertinggi milik user tertentu.
   Future<int> getUserBestScore(String userId) async {
-    final userRef =
-        _firestore.collection(FirestorePaths.usersCollection).doc(userId);
-
-    // CRUD: READ
-    final querySnapshot = await _firestore
+    // CRUD: READ - Langsung ambil dokumen berdasarkan userId
+    final doc = await _firestore
         .collection(FirestorePaths.leaderboardCollection)
-        .where(FirestorePaths.fieldUserId, isEqualTo: userRef)
-        .orderBy(FirestorePaths.fieldScore, descending: true)
-        .limit(1)
+        .doc(userId)
         .get();
 
     AppLogger.firestore('READ', FirestorePaths.leaderboardCollection,
-        detail: 'Best score for user $userId');
+        detail: 'Fetching best score for user $userId');
 
-    if (querySnapshot.docs.isEmpty) return 0;
-    return querySnapshot.docs.first.data()[FirestorePaths.fieldScore] as int;
+    if (!doc.exists) return 0;
+    final data = doc.data();
+    return data?[FirestorePaths.fieldScore] as int? ?? 0;
   }
 
   /// ═══════════════════════════════════════
