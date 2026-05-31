@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../main.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/language_provider.dart';
 import '../../services/user_service.dart';
 import '../widgets/sdg_button.dart';
 
@@ -150,6 +151,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 SdgButton(text: 'Save', icon: Icons.save, onPressed: _updateUsername, isLoading: _isLoading),
                 const SizedBox(height: 32),
 
+                // Fun Fact Language
+                const Text('Fun Fact Language', style: TextStyle(color: AppColors.textHi, fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                const Text(
+                  'Language used for the science fun facts shown during the game.',
+                  style: TextStyle(color: AppColors.textLo, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                _LanguageSelector(
+                  selected: ref.watch(factLanguageProvider),
+                  onChanged: (lang) =>
+                      ref.read(factLanguageProvider.notifier).setLanguage(lang),
+                ),
+                const SizedBox(height: 32),
+
                 // Dev-only: Reset High Score
                 if (AppConfig.isDev) ...[
                   Container(
@@ -192,6 +208,93 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 SdgButton(text: 'Delete Account', icon: Icons.delete_forever, style: SdgButtonStyle.danger, onPressed: _deleteAccount),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pemilih bahasa fun fact — dua pilihan toggle (English / Bahasa Indonesia).
+class _LanguageSelector extends StatelessWidget {
+  final FactLanguage selected;
+  final ValueChanged<FactLanguage> onChanged;
+
+  const _LanguageSelector({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final lang in FactLanguage.values) ...[
+          Expanded(
+            child: _LanguageChip(
+              label: lang.label,
+              isSelected: lang == selected,
+              onTap: () => onChanged(lang),
+            ),
+          ),
+          if (lang != FactLanguage.values.last) const SizedBox(width: 12),
+        ],
+      ],
+    );
+  }
+}
+
+class _LanguageChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _LanguageChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : AppColors.bgMid,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary
+                  : AppColors.textLo.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected) ...[
+                const Icon(Icons.check, color: Colors.white, size: 18),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.textHi,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

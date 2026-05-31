@@ -35,7 +35,8 @@
 //   fact_id: String,         // ID fakta yang dikoleksi (= doc ID)
 //   content: String,         // Snapshot isi fakta saat dikoleksi
 //   category: String,        // Snapshot kategori
-//   collected_at: Timestamp  // Waktu fakta dikoleksi
+//   collected_at: Timestamp, // Waktu fakta dikoleksi
+//   is_favorite: bool        // Ditandai favorit oleh pemain (toggle)
 // }
 //
 // ═══════════════════════════════════════
@@ -76,4 +77,5 @@ class FirestorePaths {
   static const String fieldContent = 'content';
   static const String fieldCategory = 'category';
   static const String fieldCollectedAt = 'collected_at';
+  static const String fieldIsFavorite = 'is_favorite';
 }

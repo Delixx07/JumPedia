@@ -2,16 +2,64 @@
 
 import '../models/fun_fact_model.dart';
 import '../services/fun_fact_service.dart';
+import '../services/gemini_fun_fact_service.dart';
+import 'language_provider.dart';
 
 /// ═══════════════════════════════════════
 /// FUN FACT PROVIDER — JumPedia
 /// ═══════════════════════════════════════
-/// Provider untuk data fun facts dari Firestore.
-/// Digunakan oleh fun_fact_overlay.dart saat player mencapai milestone.
+/// Provider untuk data fun facts.
+/// Digunakan oleh fun_fact_overlay.dart saat player mencapai checkpoint.
+///
+/// Sumber fun fact sekarang adalah AI (Google Gemini) yang men-generate
+/// fakta SDG 4 secara real-time. Provider berbasis Firestore di bawah
+/// (allFunFactsProvider, dll.) masih dipertahankan untuk kompatibilitas,
+/// tetapi tidak lagi dipakai oleh overlay.
 
-/// Provider untuk instance FunFactService.
+/// Provider untuk instance FunFactService (Firestore — legacy).
 final funFactServiceProvider = Provider<FunFactService>((ref) {
   return FunFactService();
+});
+
+/// ═══════════════════════════════════════
+/// GEMINI (AI) PROVIDERS
+/// ═══════════════════════════════════════
+
+/// Provider singleton untuk service AI Gemini.
+final geminiFunFactServiceProvider = Provider<GeminiFunFactService>((ref) {
+  return GeminiFunFactService();
+});
+
+/// Menghitung berapa kali checkpoint sudah dilewati dalam satu sesi.
+/// Dinaikkan tiap kali GameWorld memicu fun fact, sehingga overlay
+/// men-generate fakta AI yang baru pada tiap checkpoint.
+class FactCheckpointNotifier extends StateNotifier<int> {
+  FactCheckpointNotifier() : super(0);
+
+  /// Lanjut ke checkpoint berikutnya (memicu fetch fakta AI baru).
+  void next() => state = state + 1;
+
+  /// Reset saat mulai game baru.
+  void reset() => state = 0;
+}
+
+/// Counter checkpoint aktif. Dipakai sebagai "kunci" untuk memaksa
+/// [aiFunFactProvider] menghasilkan fakta baru tiap checkpoint.
+final factCheckpointProvider =
+    StateNotifierProvider<FactCheckpointNotifier, int>((ref) {
+  return FactCheckpointNotifier();
+});
+
+/// FutureProvider.family: men-generate satu fun fact AI untuk nomor
+/// checkpoint tertentu. Hasil di-cache per-checkpoint oleh Riverpod, jadi
+/// rebuild overlay (mis. animasi) tidak memanggil AI berulang kali.
+final aiFunFactProvider =
+    FutureProvider.family<FunFactModel, int>((ref, checkpoint) async {
+  final service = ref.watch(geminiFunFactServiceProvider);
+  // Baca (bukan watch) bahasa: fakta untuk checkpoint ini dibuat sekali
+  // dengan bahasa yang aktif saat checkpoint terpicu.
+  final language = ref.read(factLanguageProvider);
+  return service.generateFact(language: language);
 });
 
 /// FutureProvider: mengambil semua fun facts dari Firestore.

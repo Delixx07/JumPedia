@@ -36,8 +36,8 @@ class AppConstants {
   static const int initialPlatformCount = 15;
 
   // ─── Player Settings ──────────────────
-  /// HP awal player.
-  static const int initialHp = 3;
+  /// HP awal player (mulai dengan 5 hati penuh, sesuai jumlah simbol di HUD).
+  static const int initialHp = 5;
 
   /// HP maksimum player.
   static const int maxHp = 5;
@@ -55,9 +55,8 @@ class AppConstants {
 
   /// Selisih skor antar checkpoint fun fact.
   /// Setiap kali skor pemain naik kelipatan nilai ini, fun fact baru
-  /// di-trigger (mis. di skor 100, 200, 300, ...). Dibuat agak besar
-  /// supaya checkpoint tidak terlalu sering dan reward terasa berarti.
-  static const int funFactScoreInterval = 100;
+  /// di-trigger (mis. di skor 300, 600, 900, ...).
+  static const int funFactScoreInterval = 300;
 
   // ─── Boost Settings ───────────────────
   /// Durasi shield/speed boost dari globe collectible (detik).

@@ -74,24 +74,21 @@ class CollectedFactService {
   }
 
   /// ═══════════════════════════════════════
-  /// UPDATE — Refresh isi snapshot fact yang sudah dikoleksi.
+  /// UPDATE — Tandai / lepas favorit pada fakta yang dikoleksi.
   /// ═══════════════════════════════════════
-  /// Berguna jika konten fact di Firestore master `fun_facts` di-edit oleh
-  /// admin, dan user ingin "sync" koleksi miliknya tanpa harus mengulang game.
-  Future<void> updateCollectedFact(
+  /// Hanya mengubah flag `is_favorite`; isi fakta tidak boleh diubah pemain.
+  Future<void> setFavorite(
     String uid, {
     required String factId,
-    required String newContent,
-    String? newCategory,
+    required bool isFavorite,
   }) async {
     // CRUD: UPDATE
     await _collection(uid).doc(factId).update({
-      FirestorePaths.fieldContent: newContent,
-      if (newCategory != null) FirestorePaths.fieldCategory: newCategory,
+      FirestorePaths.fieldIsFavorite: isFavorite,
     });
 
     AppLogger.firestore('UPDATE', FirestorePaths.collectedFactsPath(uid),
-        detail: 'Fact $factId content refreshed');
+        detail: 'Fact $factId is_favorite = $isFavorite');
   }
 
   /// ═══════════════════════════════════════

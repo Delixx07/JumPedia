@@ -3,10 +3,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/constants/app_colors.dart';
 import 'core/utils/logger.dart';
 import 'firebase_options.dart';
+import 'providers/language_provider.dart';
 import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/home_screen.dart';
@@ -82,9 +84,19 @@ Future<void> mainCommon() async {
     AppLogger.info('Firebase Analytics enabled (prod)');
   }
 
+  // Muat preferensi lokal (mis. pilihan bahasa fun fact) sebelum runApp.
+  final prefs = await SharedPreferences.getInstance();
+
   AppLogger.info('App started: ${AppConfig.appLabel} (isDev: ${AppConfig.isDev})');
 
-  runApp(const ProviderScope(child: JumPediaApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const JumPediaApp(),
+    ),
+  );
 }
 
 void main() => mainCommon();

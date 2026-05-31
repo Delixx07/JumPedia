@@ -3,30 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../models/collected_fact_model.dart';
-import '../../models/fun_fact_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/collected_fact_provider.dart';
-import '../../providers/fun_fact_provider.dart';
 
 /// ═══════════════════════════════════════
 /// FUN FACTS SCREEN — JumPedia
 /// ═══════════════════════════════════════
-/// Halaman koleksi fakta yang sudah didapatkan pemain selama bermain.
-/// Tampilan grid 2 kolom — card berwarna jika sudah dikoleksi, card "???"
-/// abu-abu jika belum. Tap card untuk membuka detail.
+/// Halaman koleksi fakta IPA yang sudah didapatkan pemain selama bermain.
+/// Setiap fakta di-generate AI saat checkpoint, lalu disimpan ke koleksi
+/// pribadi user (users/{uid}/collected_facts). Halaman ini menampilkan
+/// koleksi tersebut sebagai grid 2 kolom.
 ///
-/// CRUD lengkap di-handle via CollectedFactService:
-/// - CREATE: dari [fun_fact_overlay.dart] saat fact muncul di game
+/// CRUD di-handle via CollectedFactService:
+/// - CREATE: dari [fun_fact_overlay.dart] saat fakta AI muncul di game
 /// - READ:   stream `collectedFactsStreamProvider` di sini
-/// - UPDATE: dialog "Refresh" di detail card (snap ulang content)
-/// - DELETE: tombol hapus per-item + tombol reset semua di app bar
+/// - DELETE: tombol hapus per-item + tombol reset semua di header
+/// Pemain TIDAK boleh mengedit isi fakta (konten edukasi harus tetap utuh).
 
 class FunFactsScreen extends ConsumerWidget {
   const FunFactsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allFactsAsync = ref.watch(allFunFactsProvider);
     final collectedAsync = ref.watch(collectedFactsStreamProvider);
 
     return Scaffold(
@@ -63,7 +61,7 @@ class FunFactsScreen extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          'Collect SDG 4 facts at every checkpoint',
+                          'Collect a science fact at every checkpoint',
                           style: TextStyle(
                             color: AppColors.textLo,
                             fontSize: 11.5,
@@ -84,17 +82,14 @@ class FunFactsScreen extends ConsumerWidget {
               ),
             ),
 
-            // ─── Progress Bar ───────────────────
-            _ProgressBar(
-              allFactsAsync: allFactsAsync,
-              collectedAsync: collectedAsync,
-            ),
+            // ─── Counter koleksi ─────────────────
+            _CollectionCounter(collectedAsync: collectedAsync),
 
             const SizedBox(height: 12),
 
             // ─── Grid ────────────────────────────
             Expanded(
-              child: allFactsAsync.when(
+              child: collectedAsync.when(
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
@@ -102,24 +97,16 @@ class FunFactsScreen extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Failed to load facts:\n$e',
+                      'Failed to load collection:\n$e',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: AppColors.textLo),
                     ),
                   ),
                 ),
-                data: (allFacts) {
-                  if (allFacts.isEmpty) {
+                data: (collected) {
+                  if (collected.isEmpty) {
                     return const _EmptyState();
                   }
-
-                  final collected = collectedAsync.maybeWhen(
-                    data: (list) => list,
-                    orElse: () => const <CollectedFactModel>[],
-                  );
-                  final collectedMap = {
-                    for (final c in collected) c.factId: c,
-                  };
 
                   return GridView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -130,15 +117,13 @@ class FunFactsScreen extends ConsumerWidget {
                       crossAxisSpacing: 12,
                       childAspectRatio: 0.92,
                     ),
-                    itemCount: allFacts.length,
+                    itemCount: collected.length,
                     itemBuilder: (context, i) {
-                      final fact = allFacts[i];
-                      final got = collectedMap[fact.factId];
+                      final fact = collected[i];
                       return _FactCard(
                         index: i,
                         fact: fact,
-                        collected: got,
-                        onTap: () => _openDetail(context, ref, fact, got),
+                        onTap: () => _openDetail(context, ref, fact),
                       );
                     },
                   );
@@ -157,10 +142,8 @@ class FunFactsScreen extends ConsumerWidget {
   Future<void> _openDetail(
     BuildContext context,
     WidgetRef ref,
-    FunFactModel fact,
-    CollectedFactModel? collected,
+    CollectedFactModel fact,
   ) async {
-    final isCollected = collected != null;
     showDialog<void>(
       context: context,
       builder: (ctx) => Dialog(
@@ -175,22 +158,30 @@ class FunFactsScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Icon(
-                    isCollected
-                        ? Icons.school_rounded
-                        : Icons.lock_outline_rounded,
-                    color: isCollected ? AppColors.warn : AppColors.textLo,
-                  ),
+                  const Icon(Icons.science_rounded, color: AppColors.warn),
                   const SizedBox(width: 8),
-                  Expanded(
+                  const Expanded(
                     child: Text(
-                      isCollected ? 'Collected Fact' : 'Not Yet Collected',
-                      style: const TextStyle(
+                      'Science Fun Fact',
+                      style: TextStyle(
                         color: AppColors.textHi,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
+                  ),
+                  // UPDATE — toggle favorite (tidak mengubah isi fakta).
+                  IconButton(
+                    tooltip:
+                        fact.isFavorite ? 'Remove favorite' : 'Mark as favorite',
+                    icon: Icon(
+                      fact.isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                      color: AppColors.warn,
+                    ),
+                    onPressed: () async {
+                      Navigator.of(ctx).pop();
+                      await _toggleFavorite(context, ref, fact);
+                    },
                   ),
                 ],
               ),
@@ -214,9 +205,7 @@ class FunFactsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                isCollected
-                    ? (collected.content)
-                    : 'Play the game and reach checkpoints to unlock this fact! 🚀',
+                fact.content,
                 style: const TextStyle(
                   color: AppColors.textHi,
                   fontSize: 14.5,
@@ -227,32 +216,18 @@ class FunFactsScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (isCollected) ...[
-                    TextButton.icon(
-                      onPressed: () async {
-                        Navigator.of(ctx).pop();
-                        await _refreshFact(context, ref, fact);
-                      },
-                      icon: const Icon(Icons.refresh_rounded,
-                          color: Colors.cyanAccent, size: 18),
-                      label: const Text(
-                        'Refresh',
-                        style: TextStyle(color: Colors.cyanAccent),
-                      ),
+                  TextButton.icon(
+                    onPressed: () async {
+                      Navigator.of(ctx).pop();
+                      await _deleteOne(context, ref, fact.factId);
+                    },
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        color: Colors.redAccent, size: 18),
+                    label: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.redAccent),
                     ),
-                    TextButton.icon(
-                      onPressed: () async {
-                        Navigator.of(ctx).pop();
-                        await _deleteOne(context, ref, fact.factId);
-                      },
-                      icon: const Icon(Icons.delete_outline_rounded,
-                          color: Colors.redAccent, size: 18),
-                      label: const Text(
-                        'Delete',
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    ),
-                  ],
+                  ),
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(),
                     child: const Text(
@@ -269,30 +244,34 @@ class FunFactsScreen extends ConsumerWidget {
     );
   }
 
-  // ─── UPDATE — sync isi snapshot dari koleksi master ─────
-  Future<void> _refreshFact(
+  // ─── UPDATE — toggle favorit (tanpa mengubah isi fakta) ─
+  Future<void> _toggleFavorite(
     BuildContext context,
     WidgetRef ref,
-    FunFactModel fact,
+    CollectedFactModel fact,
   ) async {
     final uid = ref.read(currentUserUidProvider);
     if (uid == null) return;
+    final newValue = !fact.isFavorite;
     try {
-      await ref.read(collectedFactServiceProvider).updateCollectedFact(
+      await ref.read(collectedFactServiceProvider).setFavorite(
             uid,
             factId: fact.factId,
-            newContent: fact.content,
-            newCategory: fact.category,
+            isFavorite: newValue,
           );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fact refreshed successfully')),
+          SnackBar(
+            content: Text(
+              newValue ? 'Added to favorites ⭐' : 'Removed from favorites',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Refresh failed: $e')),
+          SnackBar(content: Text('Update failed: $e')),
         );
       }
     }
@@ -377,26 +356,17 @@ class FunFactsScreen extends ConsumerWidget {
   }
 }
 
-// ─── Progress bar di atas grid ─────────────────────────
-class _ProgressBar extends StatelessWidget {
-  final AsyncValue<List<FunFactModel>> allFactsAsync;
+// ─── Counter koleksi di atas grid ──────────────────────
+class _CollectionCounter extends StatelessWidget {
   final AsyncValue<List<CollectedFactModel>> collectedAsync;
-  const _ProgressBar({
-    required this.allFactsAsync,
-    required this.collectedAsync,
-  });
+  const _CollectionCounter({required this.collectedAsync});
 
   @override
   Widget build(BuildContext context) {
-    final total = allFactsAsync.maybeWhen(
-      data: (list) => list.length,
-      orElse: () => 0,
-    );
     final got = collectedAsync.maybeWhen(
       data: (list) => list.length,
       orElse: () => 0,
     );
-    final progress = total == 0 ? 0.0 : (got / total).clamp(0.0, 1.0);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -408,40 +378,28 @@ class _ProgressBar extends StatelessWidget {
           color: AppColors.primary.withValues(alpha: 0.3),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Progress',
-                style: TextStyle(
-                  color: AppColors.textLo,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
+          const Icon(Icons.auto_stories_rounded,
+              color: AppColors.primary, size: 20),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Facts collected',
+              style: TextStyle(
+                color: AppColors.textLo,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
               ),
-              Text(
-                '$got / $total facts',
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          Text(
+            '$got',
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -450,27 +408,28 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
-// ─── Card untuk tiap fact (collected / locked) ────────
+// ─── Card untuk tiap fakta yang sudah dikoleksi ────────
 class _FactCard extends StatelessWidget {
   final int index;
-  final FunFactModel fact;
-  final CollectedFactModel? collected;
+  final CollectedFactModel fact;
   final VoidCallback onTap;
 
   const _FactCard({
     required this.index,
     required this.fact,
-    required this.collected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isCollected = collected != null;
-
-    // Card collected: gradient biru penuh. Card locked: putih bersih.
-    final Decoration decoration = isCollected
-        ? BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
             gradient: AppColors.accentCardGradient,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -484,21 +443,7 @@ class _FactCard extends StatelessWidget {
                 spreadRadius: 1,
               ),
             ],
-          )
-        : BoxDecoration(
-            color: AppColors.bgMid,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border, width: 1.2),
-          );
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: decoration,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -508,27 +453,32 @@ class _FactCard extends StatelessWidget {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: isCollected
-                          ? AppColors.warn.withValues(alpha: 0.25)
-                          : AppColors.primary.withValues(alpha: 0.12),
+                      color: AppColors.warn.withValues(alpha: 0.25),
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       '#${index + 1}',
-                      style: TextStyle(
-                        color: isCollected ? AppColors.warn : AppColors.primary,
+                      style: const TextStyle(
+                        color: AppColors.warn,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                   const Spacer(),
-                  Icon(
-                    isCollected
-                        ? Icons.check_circle_rounded
-                        : Icons.lock_rounded,
-                    color: isCollected ? Colors.white : AppColors.textLo,
+                  if (fact.isFavorite)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.star_rounded,
+                        color: AppColors.warn,
+                        size: 18,
+                      ),
+                    ),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.white,
                     size: 18,
                   ),
                 ],
@@ -536,17 +486,13 @@ class _FactCard extends StatelessWidget {
               const SizedBox(height: 10),
               Expanded(
                 child: Text(
-                  isCollected
-                      ? collected!.content
-                      : '???\nMain untuk membuka fakta ini.',
+                  fact.content,
                   maxLines: 5,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isCollected ? Colors.white : AppColors.textLo,
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 12,
                     height: 1.35,
-                    fontStyle:
-                        isCollected ? FontStyle.normal : FontStyle.italic,
                   ),
                 ),
               ),
@@ -555,15 +501,13 @@ class _FactCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isCollected
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : AppColors.primary.withValues(alpha: 0.1),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   fact.category,
-                  style: TextStyle(
-                    color: isCollected ? Colors.white : AppColors.primary,
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -596,7 +540,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'No facts available yet',
+              'No facts collected yet',
               style: TextStyle(
                 color: AppColors.textHi,
                 fontSize: 16,
@@ -605,7 +549,8 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Add documents to the fun_facts collection via Firebase Console.',
+              'Play the game and reach checkpoints to collect '
+              'science fun facts! 🚀',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.textLo,

@@ -26,6 +26,9 @@ dependencies:
   # Cloud Firestore
   cloud_firestore: ^4.17.0
 
+  # AI — generate fun fact SDG 4 secara real-time (Google Gemini)
+  google_generative_ai: ^0.4.6
+
   # Firebase Cloud Messaging
   firebase_messaging: ^14.9.0
 
@@ -43,6 +46,9 @@ dependencies:
 
   # Navigation
   go_router: ^13.2.0
+
+  # Penyimpanan preferensi lokal (mis. pilihan bahasa fun fact)
+  shared_preferences: ^2.2.3
 
   # Cupertino icons
   cupertino_icons: ^1.0.8

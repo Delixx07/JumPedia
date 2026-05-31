@@ -10,9 +10,9 @@ import '../world/game_world.dart';
 /// ═══════════════════════════════════════
 /// FUN FACT OVERLAY — JumPedia
 /// ═══════════════════════════════════════
-/// Pop-up overlay yang menampilkan fakta edukatif SDG 4
-/// setiap kali player mencapai ketinggian 500 unit.
-/// Game di-pause selama overlay ditampilkan.
+/// Pop-up overlay yang menampilkan fakta edukatif SDG 4 setiap kali player
+/// mencapai checkpoint (kelipatan skor). Fakta di-generate oleh AI (Gemini)
+/// secara real-time. Game di-pause selama overlay ditampilkan.
 
 class FunFactOverlay extends ConsumerWidget {
   /// Reference ke GameWorld untuk resume game setelah overlay ditutup.
@@ -22,7 +22,9 @@ class FunFactOverlay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final factsAsync = ref.watch(allFunFactsProvider);
+    // Nomor checkpoint aktif → memicu fakta AI baru pada tiap checkpoint.
+    final checkpoint = ref.watch(factCheckpointProvider);
+    final factAsync = ref.watch(aiFunFactProvider(checkpoint));
 
     return Material(
       color: Colors.black54,
@@ -52,7 +54,7 @@ class FunFactOverlay extends ConsumerWidget {
               const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.school, color: AppColors.warn, size: 28),
+                  Icon(Icons.science, color: AppColors.warn, size: 28),
                   SizedBox(width: 8),
                   Text(
                     'Did You Know?',
@@ -67,7 +69,7 @@ class FunFactOverlay extends ConsumerWidget {
 
               const SizedBox(height: 8),
 
-              // SDG 4 Badge
+              // Science badge (SDG 4 — Quality Education)
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -76,7 +78,7 @@ class FunFactOverlay extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
-                  'SDG 4 — Quality Education',
+                  '🔬 Science Fun Fact',
                   style: TextStyle(
                     color: AppColors.warn,
                     fontSize: 12,
@@ -87,57 +89,40 @@ class FunFactOverlay extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // ─── Fact Content ──────────────
-              factsAsync.when(
-                loading: () => const CircularProgressIndicator(
-                  color: AppColors.warn,
+              // ─── Fact Content (AI-generated) ──────────────
+              factAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(color: AppColors.warn),
+                      SizedBox(height: 12),
+                      Text(
+                        'Generating a fun fact...',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ],
+                  ),
                 ),
                 error: (error, _) => Text(
-                  'Failed to load facts: $error',
+                  'Failed to load fact: $error',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.danger),
                 ),
-                data: (facts) {
-                  if (facts.isEmpty) {
-                    return const Text(
-                      '258 million children and young people around the world '
-                      'are still out of school. Quality education is the key '
-                      'to a better future!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        height: 1.5,
-                      ),
-                    );
-                  }
-
-                  // Ambil fakta yang belum ditampilkan
-                  final shownFacts = ref.read(shownFactsProvider);
-                  final unshownFacts = facts
-                      .where((f) => !shownFacts.contains(f.factId))
-                      .toList();
-
-                  final factToShow = unshownFacts.isNotEmpty
-                      ? (unshownFacts..shuffle()).first
-                      : (facts..shuffle()).first;
-
-                  // Tandai sebagai sudah ditampilkan + simpan ke koleksi user.
+                data: (fact) {
+                  // Simpan fakta AI ke koleksi user.
                   // CRUD: CREATE — fact ini masuk subcollection collected_facts.
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    ref
-                        .read(shownFactsProvider.notifier)
-                        .markAsShown(factToShow.factId);
-
                     final uid = ref.read(currentUserUidProvider);
                     if (uid != null) {
                       ref
                           .read(collectedFactServiceProvider)
-                          .collectFact(uid, factToShow);
+                          .collectFact(uid, fact);
                     }
                   });
 
                   return Text(
-                    factToShow.content,
+                    fact.content,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
@@ -151,12 +136,14 @@ class FunFactOverlay extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // ─── Continue Button ───────────
+              // Nonaktif saat fakta masih di-generate, agar pemain tidak
+              // skip sebelum fakta sempat tampil & tersimpan ke koleksi.
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    game.resumeFromFunFact();
-                  },
+                  onPressed: factAsync.isLoading
+                      ? null
+                      : () => game.resumeFromFunFact(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.warn,
                     foregroundColor: AppColors.bgTop,

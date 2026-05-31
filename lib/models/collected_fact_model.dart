@@ -8,12 +8,14 @@ class CollectedFactModel {
   final String content;
   final String category;
   final Timestamp collectedAt;
+  final bool isFavorite;
 
   const CollectedFactModel({
     required this.factId,
     required this.content,
     required this.category,
     required this.collectedAt,
+    this.isFavorite = false,
   });
 
   factory CollectedFactModel.fromFirestore(DocumentSnapshot doc) {
@@ -23,6 +25,7 @@ class CollectedFactModel {
       content: data['content'] as String? ?? '',
       category: data['category'] as String? ?? 'general',
       collectedAt: data['collected_at'] as Timestamp? ?? Timestamp.now(),
+      isFavorite: data['is_favorite'] as bool? ?? false,
     );
   }
 
@@ -32,6 +35,7 @@ class CollectedFactModel {
       'content': content,
       'category': category,
       'collected_at': collectedAt,
+      'is_favorite': isFavorite,
     };
   }
 }

@@ -52,6 +52,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       ref.read(scoreProvider.notifier).resetScore();
       ref.read(hpProvider.notifier).resetHp();
       ref.read(shownFactsProvider.notifier).reset();
+      ref.read(factCheckpointProvider.notifier).reset();
       _focusNode.requestFocus();
     });
   }

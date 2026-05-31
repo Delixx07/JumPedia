@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../providers/fun_fact_provider.dart';
+import '../../providers/collected_fact_provider.dart';
 import '../../providers/score_provider.dart';
 import '../widgets/sdg_button.dart';
 
@@ -13,18 +13,17 @@ import '../widgets/sdg_button.dart';
 /// GAME OVER SCREEN — JumPedia
 /// ═══════════════════════════════════════
 /// Ditampilkan setelah player meninggal (HP = 0 atau jatuh).
-/// Memberikan: skor akhir, fun fact bonus (reward checkpoint terakhir),
-/// dan opsi untuk Restart (main lagi) atau Back Home.
+/// Memberikan: skor akhir, fun fact bonus (salah satu fakta IPA yang
+/// dikoleksi pemain), dan opsi untuk Restart (main lagi) atau Back Home.
 
-/// Fallback fun facts ketika koleksi Firestore kosong / gagal load.
+/// Fallback fun facts IPA untuk anak SD, jika koleksi pemain masih kosong.
 const _fallbackFacts = [
-  '258 million children and young people around the world are still out of '
-      'school. Quality education is the key to a better future!',
-  'Each additional year of education raises a person\'s average income by '
-      'about 10%.',
-  'Reading 20 minutes a day exposes a child to roughly 1.8 million words '
-      'per year.',
-  'SDG 4 targets inclusive, equitable, and quality education for all by 2030.',
+  'A honeybee has to visit about 2 million flowers to make just one jar of '
+      'honey!',
+  'Your heart beats around 100,000 times every single day to keep your '
+      'blood moving.',
+  'The Sun is so big that about 1.3 million Earths could fit inside it!',
+  'Sound travels about 4 times faster in water than it does in the air.',
 ];
 
 class GameOverScreen extends ConsumerWidget {
@@ -33,7 +32,7 @@ class GameOverScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final finalScore = ref.read(scoreProvider);
-    final factsAsync = ref.watch(allFunFactsProvider);
+    final factsAsync = ref.watch(collectedFactsStreamProvider);
 
     return Scaffold(
       body: Container(
@@ -231,10 +230,10 @@ class _FunFactReward extends StatelessWidget {
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.school_rounded, color: AppColors.warn, size: 24),
+              Icon(Icons.science_rounded, color: AppColors.warn, size: 24),
               SizedBox(width: 8),
               Text(
-                'Fun Fact Checkpoint',
+                'Science Fun Fact',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -252,7 +251,7 @@ class _FunFactReward extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Text(
-              'SDG 4 — Quality Education',
+              '🔬 One fact from your collection',
               style: TextStyle(
                 color: AppColors.warn,
                 fontSize: 10.5,

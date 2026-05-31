@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
+import '../../providers/fun_fact_provider.dart';
 import '../../providers/hp_provider.dart';
 import '../../providers/score_provider.dart';
 import '../components/collectible.dart';
@@ -110,6 +111,13 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
     // ─── Inisialisasi Player ─────────────
     player = Player();
     add(player);
+
+    // Prefetch fakta checkpoint pertama, TAPI ditunda beberapa detik supaya
+    // panggilan AI tidak menyendat inisialisasi & frame awal game. Checkpoint
+    // pertama (skor 500) baru tercapai jauh setelah ini, jadi fakta tetap siap.
+    Future.delayed(const Duration(seconds: 3), () {
+      if (isMounted) _prefetchFact(1);
+    });
 
     AppLogger.game('GameWorld loaded! ${AppConstants.initialPlatformCount} platforms spawned');
   }
@@ -267,9 +275,11 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   /// ═══════════════════════════════════════
   /// FUN FACT TRIGGER
   /// ═══════════════════════════════════════
-  /// Pause game dan tampilkan fun fact overlay setiap 500 unit ketinggian.
+  /// Pause game dan tampilkan fun fact overlay setiap kelipatan skor checkpoint.
+  /// Menaikkan counter checkpoint agar overlay men-generate fakta AI baru.
   void _triggerFunFact() {
     _isPausedForFact = true;
+    ref.read(factCheckpointProvider.notifier).next();
     showOverlay('funFact');
     AppLogger.game('🎓 Fun fact triggered at score: $_lastFunFactScore');
   }
@@ -279,6 +289,23 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
     _isPausedForFact = false;
     hideOverlay('funFact');
     AppLogger.game('Game resumed after fun fact');
+
+    // Prefetch fakta untuk checkpoint BERIKUTNYA di latar belakang, supaya
+    // saat checkpoint itu tercapai fakta sudah siap (tanpa jeda loading).
+    final current = ref.read(factCheckpointProvider);
+    _prefetchFact(current + 1);
+  }
+
+  /// Hangatkan cache [aiFunFactProvider] untuk nomor [checkpoint] tertentu.
+  /// Memicu generate AI lebih awal; hasilnya tersimpan di cache Riverpod
+  /// sampai overlay men-watch key yang sama.
+  void _prefetchFact(int checkpoint) {
+    ref.read(aiFunFactProvider(checkpoint).future).then((_) {
+      AppLogger.game('🔮 Prefetched fun fact for checkpoint $checkpoint');
+    }).catchError((Object e) {
+      // Diamkan — kalau prefetch gagal, overlay akan coba lagi saat dibuka.
+      AppLogger.warning('Prefetch fun fact gagal: $e', tag: 'Gemini');
+    });
   }
 
   /// ═══════════════════════════════════════
