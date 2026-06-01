@@ -17,6 +17,7 @@ import 'presentation/screens/game_over_screen.dart';
 import 'presentation/screens/leaderboard_screen.dart';
 import 'presentation/screens/settings_screen.dart';
 import 'presentation/screens/fun_facts_screen.dart';
+import 'presentation/screens/profile_screen.dart';
 import 'presentation/screens/main_shell.dart';
 import 'services/notification_service.dart';
 
@@ -43,6 +44,7 @@ final GoRouter _router = GoRouter(
     GoRoute(path: '/game', builder: (_, __) => const GameScreen()),
     GoRoute(path: '/game-over', builder: (_, __) => const GameOverScreen()),
     GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+    GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
 
     // Shell dengan NavigationBar — Home / Fun Facts / Leaderboard.
     ShellRoute(

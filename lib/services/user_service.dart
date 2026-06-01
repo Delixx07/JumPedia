@@ -48,6 +48,40 @@ class UserService {
   }
 
   /// ═══════════════════════════════════════
+  /// UPDATE AVATAR PATH
+  /// ═══════════════════════════════════════
+  /// // CRUD: UPDATE — Update field avatar_path di dokumen user.
+  Future<void> updateAvatarPath(String uid, String newPath) async {
+    // CRUD: UPDATE
+    await _firestore
+        .collection(FirestorePaths.usersCollection)
+        .doc(uid)
+        .update({
+      FirestorePaths.fieldAvatarPath: newPath,
+    });
+
+    AppLogger.firestore('UPDATE', FirestorePaths.userDoc(uid),
+        detail: 'Avatar path updated to $newPath');
+  }
+
+  /// ═══════════════════════════════════════
+  /// UPDATE NOTIFICATION PREFERENCE
+  /// ═══════════════════════════════════════
+  /// // CRUD: UPDATE — Update field notifications_enabled di dokumen user.
+  Future<void> updateNotificationPreference(String uid, bool enabled) async {
+    // CRUD: UPDATE
+    await _firestore
+        .collection(FirestorePaths.usersCollection)
+        .doc(uid)
+        .update({
+      FirestorePaths.fieldNotificationsEnabled: enabled,
+    });
+
+    AppLogger.firestore('UPDATE', FirestorePaths.userDoc(uid),
+        detail: 'Notifications enabled: $enabled');
+  }
+
+  /// ═══════════════════════════════════════
   /// DELETE USER DOCUMENT
   /// ═══════════════════════════════════════
   /// // CRUD: DELETE — Hapus dokumen user dari Firestore.

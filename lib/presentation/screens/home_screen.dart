@@ -256,10 +256,52 @@ class _HeaderBar extends ConsumerWidget {
     final userAsync = ref.watch(_currentUserModelProvider);
     return Row(
       children: [
+        GestureDetector(
+          onTap: () => context.go('/profile'),
+          child: userAsync.when(
+            data: (user) => Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary,
+              ),
+              child: CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.bgMid,
+                backgroundImage: AssetImage(
+                  'assets/images/avatars/${user?.avatarPath ?? 'panda.png'}',
+                ),
+              ),
+            ),
+            loading: () => const CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.bgMid,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            error: (_, __) => const CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.bgMid,
+              child: Icon(Icons.person),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: userAsync.when(
             data: (user) {
-              final name = user?.username ?? 'guest player';
+              if (user == null) {
+                return const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Setting up profile...',
+                      style: TextStyle(color: AppColors.textHi, fontSize: 18, fontWeight: FontWeight.w700),
+                    ),
+                    Text('Just a moment...', style: TextStyle(color: AppColors.textLo, fontSize: 12)),
+                  ],
+                );
+              }
+              final name = user.username;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -283,8 +325,17 @@ class _HeaderBar extends ConsumerWidget {
                 ],
               );
             },
-            loading: () => const SizedBox(height: 24),
-            error: (_, __) => const SizedBox.shrink(),
+            loading: () => const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                ),
+              ],
+            ),
+            error: (_, __) => const Text('Hello, Player', style: TextStyle(color: AppColors.textHi, fontSize: 18, fontWeight: FontWeight.w700)),
           ),
         ),
         IconButton(

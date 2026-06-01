@@ -1,16 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/constants/firestore_paths.dart';
 
 /// Model untuk koleksi 'users' di Firestore.
 /// Menyimpan data profil pemain termasuk statistik permainan.
 class UserModel {
   final String uid;
   final String username;
+  final String avatarPath;
+  final bool notificationsEnabled;
   final int totalGamesPlayed;
   final Timestamp createdAt;
 
   const UserModel({
     required this.uid,
     required this.username,
+    required this.avatarPath,
+    required this.notificationsEnabled,
     required this.totalGamesPlayed,
     required this.createdAt,
   });
@@ -19,20 +24,24 @@ class UserModel {
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return UserModel(
-      uid: data['uid'] as String? ?? doc.id,
-      username: data['username'] as String? ?? 'Unknown',
-      totalGamesPlayed: data['total_games_played'] as int? ?? 0,
-      createdAt: data['created_at'] as Timestamp? ?? Timestamp.now(),
+      uid: data[FirestorePaths.fieldUid] as String? ?? doc.id,
+      username: data[FirestorePaths.fieldUsername] as String? ?? 'Unknown',
+      avatarPath: data[FirestorePaths.fieldAvatarPath] as String? ?? 'panda.png',
+      notificationsEnabled: data[FirestorePaths.fieldNotificationsEnabled] as bool? ?? true,
+      totalGamesPlayed: data[FirestorePaths.fieldTotalGamesPlayed] as int? ?? 0,
+      createdAt: data[FirestorePaths.fieldCreatedAt] as Timestamp? ?? Timestamp.now(),
     );
   }
 
   /// Konversi ke Map untuk disimpan ke Firestore.
   Map<String, dynamic> toFirestore() {
     return {
-      'uid': uid,
-      'username': username,
-      'total_games_played': totalGamesPlayed,
-      'created_at': createdAt,
+      FirestorePaths.fieldUid: uid,
+      FirestorePaths.fieldUsername: username,
+      FirestorePaths.fieldAvatarPath: avatarPath,
+      FirestorePaths.fieldNotificationsEnabled: notificationsEnabled,
+      FirestorePaths.fieldTotalGamesPlayed: totalGamesPlayed,
+      FirestorePaths.fieldCreatedAt: createdAt,
     };
   }
 
@@ -40,12 +49,16 @@ class UserModel {
   UserModel copyWith({
     String? uid,
     String? username,
+    String? avatarPath,
+    bool? notificationsEnabled,
     int? totalGamesPlayed,
     Timestamp? createdAt,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
       username: username ?? this.username,
+      avatarPath: avatarPath ?? this.avatarPath,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       totalGamesPlayed: totalGamesPlayed ?? this.totalGamesPlayed,
       createdAt: createdAt ?? this.createdAt,
     );

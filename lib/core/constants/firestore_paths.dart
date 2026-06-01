@@ -68,6 +68,8 @@ class FirestorePaths {
   // ─── Field Names ──────────────────────
   static const String fieldUid = 'uid';
   static const String fieldUsername = 'username';
+  static const String fieldAvatarPath = 'avatar_path';
+  static const String fieldNotificationsEnabled = 'notifications_enabled';
   static const String fieldTotalGamesPlayed = 'total_games_played';
   static const String fieldCreatedAt = 'created_at';
   static const String fieldUserId = 'user_id';

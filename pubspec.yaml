@@ -65,6 +65,7 @@ flutter:
     - assets/images/
     - assets/images/lumi/
     - assets/images/obstacle/
+    - assets/images/avatars/
     - assets/collectibles/
     - assets/audio/
 

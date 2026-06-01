@@ -51,10 +51,9 @@ class AuthService {
       final UserCredential userCredential =
           await _auth.signInWithCredential(credential);
 
-      // Step 5: Cek apakah user baru (pertama kali login)
-      if (userCredential.additionalUserInfo?.isNewUser == true) {
-        await _createUserDocument(userCredential.user!);
-      }
+      // Step 5: Pastikan dokumen user ada di Firestore
+      // Kita panggil _ensureUserDocument agar jika dokumen terhapus tetap dibuat kembali
+      await _ensureUserDocument(userCredential.user!);
 
       AppLogger.info('Login berhasil: ${userCredential.user?.displayName}');
       return userCredential;
@@ -135,24 +134,46 @@ class AuthService {
   }
 
   /// ═══════════════════════════════════════
+  /// ENSURE USER DOCUMENT
+  /// ═══════════════════════════════════════
+  /// Memastikan dokumen user ada di Firestore. Jika belum ada, buat baru.
+  Future<void> _ensureUserDocument(User user) async {
+    final docRef =
+        _firestore.collection(FirestorePaths.usersCollection).doc(user.uid);
+    
+    final doc = await docRef.get();
+    
+    if (!doc.exists) {
+      // Ambil username dari email (bagian sebelum @) sebagai default
+      String defaultUsername = 'Player';
+      if (user.email != null && user.email!.contains('@')) {
+        defaultUsername = user.email!.split('@')[0];
+      } else if (user.displayName != null) {
+        defaultUsername = user.displayName!;
+      }
+
+      final userData = {
+        FirestorePaths.fieldUid: user.uid,
+        FirestorePaths.fieldUsername: defaultUsername,
+        FirestorePaths.fieldAvatarPath: 'panda.png', // Default avatar
+        FirestorePaths.fieldNotificationsEnabled: true, // Default enabled
+        FirestorePaths.fieldTotalGamesPlayed: 0,
+        FirestorePaths.fieldCreatedAt: FieldValue.serverTimestamp(),
+      };
+
+      await docRef.set(userData);
+      AppLogger.firestore('CREATE', FirestorePaths.userDoc(user.uid),
+          detail: 'User document restored/created for ${user.email}');
+    }
+  }
+
+  /// ═══════════════════════════════════════
   /// CREATE USER DOCUMENT
   /// ═══════════════════════════════════════
   /// // CRUD: CREATE — Buat dokumen baru di koleksi 'users' saat login pertama.
   Future<void> _createUserDocument(User user) async {
-    final docRef =
-        _firestore.collection(FirestorePaths.usersCollection).doc(user.uid);
-
-    final userData = {
-      FirestorePaths.fieldUid: user.uid,
-      FirestorePaths.fieldUsername: user.displayName ?? 'Player',
-      FirestorePaths.fieldTotalGamesPlayed: 0,
-      FirestorePaths.fieldCreatedAt: FieldValue.serverTimestamp(),
-    };
-
-    // CRUD: CREATE
-    await docRef.set(userData);
-    AppLogger.firestore('CREATE', FirestorePaths.userDoc(user.uid),
-        detail: 'User document created');
+    // Memanggil _ensureUserDocument agar logika konsisten
+    await _ensureUserDocument(user);
   }
 
   /// ═══════════════════════════════════════
@@ -188,6 +209,8 @@ class AuthService {
     final userData = {
       FirestorePaths.fieldUid: user.uid,
       FirestorePaths.fieldUsername: 'Tamu',
+      FirestorePaths.fieldAvatarPath: 'panda.png', // Default avatar
+      FirestorePaths.fieldNotificationsEnabled: true, // Default enabled
       FirestorePaths.fieldTotalGamesPlayed: 0,
       FirestorePaths.fieldCreatedAt: FieldValue.serverTimestamp(),
     };
@@ -202,11 +225,37 @@ class AuthService {
   /// ═══════════════════════════════════════
   Future<void> signOut() async {
     try {
-      await Future.wait([
-        _auth.signOut(),
-        _googleSignIn.signOut(),
-      ]);
-      AppLogger.info('User signed out');
+      final user = _auth.currentUser;
+      
+      // Jika user adalah Guest (Anonymous), hapus dokumen Firestore-nya DAN akun Auth-nya
+      // agar tidak terjadi "flooding" baik di Database maupun di daftar Auth Firebase.
+      if (user != null && user.isAnonymous) {
+        final uid = user.uid;
+        
+        // 1. Hapus dokumen di Firestore (User & Leaderboard)
+        await _firestore
+            .collection(FirestorePaths.usersCollection)
+            .doc(uid)
+            .delete();
+            
+        await _firestore
+            .collection(FirestorePaths.leaderboardCollection)
+            .doc(uid)
+            .delete();
+            
+        // 2. Hapus akun dari Firebase Authentication (Clean up daftar di Console)
+        // Note: user.delete() otomatis melakukan sign out.
+        await user.delete();
+        
+        AppLogger.info('Guest account and data cleaned up permanently from Firebase');
+      } else {
+        // Sign out normal untuk user Google (Data tetap tersimpan aman)
+        await Future.wait([
+          _auth.signOut(),
+          _googleSignIn.signOut(),
+        ]);
+        AppLogger.info('Google user signed out');
+      }
     } catch (e, st) {
       AppLogger.error('Sign-out error', error: e, stackTrace: st);
       rethrow;
