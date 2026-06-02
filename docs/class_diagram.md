@@ -23,48 +23,9 @@ Pola umum yang dipakai:
 
 ```mermaid
 classDiagram
-    direction LR
+    direction TB
 
-    %% ═════════ MODELS ═════════
-    namespace Models {
-        class UserModel {
-            +String uid
-            +String username
-            +int totalGamesPlayed
-            +Timestamp createdAt
-            +fromFirestore(doc) UserModel
-            +toFirestore() Map
-            +copyWith() UserModel
-        }
-        class LeaderboardModel {
-            +String id
-            +DocumentReference userId
-            +int score
-            +Timestamp timestamp
-            +String username
-            +fromFirestore(doc) LeaderboardModel
-            +toFirestore() Map
-            +copyWith(username) LeaderboardModel
-        }
-        class FunFactModel {
-            +String factId
-            +String content
-            +String category
-            +fromFirestore(doc) FunFactModel
-            +toFirestore() Map
-        }
-        class CollectedFactModel {
-            +String factId
-            +String content
-            +String category
-            +Timestamp collectedAt
-            +bool isFavorite
-            +fromFirestore(doc) CollectedFactModel
-            +toFirestore() Map
-        }
-    }
-
-    %% ═════════ SERVICES ═════════
+    %% ═════════ SERVICES (atas) ═════════
     namespace Services {
         class AuthService {
             +signInWithGoogle() UserCredential
@@ -105,42 +66,88 @@ classDiagram
         }
     }
 
-    %% ═════════ RUNTIME STATE (Riverpod) ═════════
-    namespace RuntimeState {
-        class ScoreNotifier {
-            +addPoints(points) void
-            +resetScore() void
+    %% ═════════ MODELS (bawah) ═════════
+    namespace Models {
+        class UserModel {
+            +String uid
+            +String username
+            +int totalGamesPlayed
+            +Timestamp createdAt
+            +fromFirestore(doc) UserModel
+            +toFirestore() Map
+            +copyWith() UserModel
         }
-        class HpNotifier {
-            +reduceHp() void
-            +addHp(amount) void
-            +resetHp() void
+        class LeaderboardModel {
+            +String id
+            +DocumentReference userId
+            +int score
+            +Timestamp timestamp
+            +String username
+            +fromFirestore(doc) LeaderboardModel
+            +toFirestore() Map
+            +copyWith(username) LeaderboardModel
         }
-        class FactCheckpointNotifier {
-            +next() void
-            +reset() void
+        class FunFactModel {
+            +String factId
+            +String content
+            +String category
+            +fromFirestore(doc) FunFactModel
+            +toFirestore() Map
         }
-        class FactLanguageNotifier {
-            +setLanguage(language) void
-        }
-        class FactLanguage {
-            <<enumeration>>
-            english
-            indonesian
+        class CollectedFactModel {
+            +String factId
+            +String content
+            +String category
+            +Timestamp collectedAt
+            +bool isFavorite
+            +fromFirestore(doc) CollectedFactModel
+            +toFirestore() Map
         }
     }
 
-    %% ═════════ RELATIONS ═════════
-    UserService ..> UserModel : maps
-    ScoreService ..> LeaderboardModel : maps
-    FunFactService ..> FunFactModel : maps
-    GeminiFunFactService ..> FunFactModel : creates
-    CollectedFactService ..> CollectedFactModel : maps
-    CollectedFactService ..> FunFactModel : reads on create
-    AuthService ..> UserModel : creates doc
-    LeaderboardModel ..> UserModel : userId ref
-    GeminiFunFactService ..> FactLanguage : uses
-    FactLanguageNotifier --> FactLanguage : holds
+    %% ═════════ RELASI Service → Model (turun lurus) ═════════
+    AuthService ..> UserModel
+    UserService ..> UserModel
+    ScoreService ..> LeaderboardModel
+    FunFactService ..> FunFactModel
+    GeminiFunFactService ..> FunFactModel
+    CollectedFactService ..> CollectedFactModel
+    CollectedFactService ..> FunFactModel
+    LeaderboardModel ..> UserModel
+```
+
+### Runtime State (Riverpod) — diagram terpisah
+
+> Dipisah agar garis tidak menyilang ke Service/Model. Notifier ini dipakai
+> oleh GameWorld & UI (di luar lapisan data), bukan oleh Service.
+
+```mermaid
+classDiagram
+    direction TB
+
+    class ScoreNotifier {
+        +addPoints(points) void
+        +resetScore() void
+    }
+    class HpNotifier {
+        +reduceHp() void
+        +addHp(amount) void
+        +resetHp() void
+    }
+    class FactCheckpointNotifier {
+        +next() void
+        +reset() void
+    }
+    class FactLanguageNotifier {
+        +setLanguage(language) void
+    }
+    class FactLanguage {
+        <<enumeration>>
+        english
+        indonesian
+    }
+
+    FactLanguageNotifier --> FactLanguage
 ```
 
 ---

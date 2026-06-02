@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
+import '../../services/audio_service.dart';
 import '../world/game_world.dart';
 import 'collectible.dart';
 import 'obstacle.dart';
@@ -253,6 +254,7 @@ class Player extends SpriteComponent
     velocity.y = AppConstants.jumpForce;
     isOnGround = false;
     _setState(PlayerState.jumping);
+    AudioService.playJump();
     AppLogger.game('Player jumped! Velocity: ${velocity.y}');
   }
 

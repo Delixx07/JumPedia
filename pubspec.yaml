@@ -14,6 +14,9 @@ dependencies:
   # Game Engine
   flame: ^1.18.0
 
+  # Audio efek suara game (jump, death)
+  flame_audio: ^2.1.0
+
   # State Management
   flutter_riverpod: ^2.5.1
 

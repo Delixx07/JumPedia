@@ -12,6 +12,7 @@ import '../../core/utils/logger.dart';
 import '../../providers/fun_fact_provider.dart';
 import '../../providers/hp_provider.dart';
 import '../../providers/score_provider.dart';
+import '../../services/audio_service.dart';
 import '../components/collectible.dart';
 import '../components/obstacle.dart';
 import '../components/platform.dart' as game_platform;
@@ -86,6 +87,9 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   @override
   FutureOr<void> onLoad() async {
     AppLogger.game('GameWorld loading...');
+
+    // ─── Preload efek suara ──────────────
+    AudioService.preload();
 
     // ─── Background langit ───────────────
     // Add paling dulu agar priority -10 selalu render di belakang.
@@ -313,6 +317,7 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   /// ═══════════════════════════════════════
   void _handleGameOver() {
     _isGameOver = true;
+    AudioService.playDeath();
     AppLogger.game('💀 GAME OVER! Final score: ${ref.read(scoreProvider)}');
     onGameOver();
   }

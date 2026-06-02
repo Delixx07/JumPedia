@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════
+// FIRESTORE SECURITY RULES — JumPedia
+// ═══════════════════════════════════════
+// Skema:
+//   users/{uid}                              → profil + statistik
+//   users/{uid}/collected_facts/{factId}     → fun fact yang dikoleksi user
+//   leaderboard/{userId}                      → skor tertinggi per user
+//
+// Prinsip:
+//   - User hanya boleh menulis data MILIKNYA sendiri (uid == auth.uid).
+//   - Koleksi fakta milik user (collected_facts) hanya bisa diakses pemiliknya.
+//   - Leaderboard boleh DIBACA semua orang yang login (untuk papan skor global),
+//     tapi tiap user hanya boleh menulis entri skornya sendiri.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── USERS ───────────────────────────
+    match /users/{uid} {
+      // Boleh baca & tulis dokumen user hanya jika itu akun sendiri.
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null
+                                     && request.auth.uid == uid;
+
+      // ─── SUBCOLLECTION: collected_facts ──
+      // Fakta yang dikumpulkan tiap user. Hanya pemilik (uid) yang boleh
+      // membuat, membaca, mengubah (favorit), dan menghapus.
+      match /collected_facts/{factId} {
+        allow read, create, update, delete: if request.auth != null
+                                            && request.auth.uid == uid;
+      }
+    }
+
+    // ─── LEADERBOARD ─────────────────────
+    // Dokumen leaderboard memakai userId sebagai ID dokumen.
+    match /leaderboard/{userId} {
+      // Semua user yang login boleh membaca papan skor global.
+      allow read: if request.auth != null;
+      // Hanya pemilik skor yang boleh menulis / menghapus entrinya.
+      allow create, update, delete: if request.auth != null
+                                    && request.auth.uid == userId;
+    }
+  }
+}
