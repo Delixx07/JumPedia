@@ -9,6 +9,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/utils/logger.dart';
 import '../../game/overlays/fun_fact_overlay.dart';
 import '../../game/overlays/hud_overlay.dart';
+import '../../game/overlays/tutorial_overlay.dart';
 import '../../game/world/game_world.dart';
 import '../../providers/hp_provider.dart';
 import '../../providers/score_provider.dart';
@@ -53,8 +54,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       ref.read(hpProvider.notifier).resetHp();
       ref.read(shownFactsProvider.notifier).reset();
       ref.read(factCheckpointProvider.notifier).reset();
+      // Pause game selama tutorial ditampilkan (overlay 'tutorial' aktif
+      // sejak awal). Resume saat pemain menekan "Start!".
+      _gameWorld.pauseEngine();
       _focusNode.requestFocus();
     });
+  }
+
+  /// Tutup tutorial & mulai game.
+  void _dismissTutorial() {
+    _gameWorld.overlays.remove('tutorial');
+    if (!_gameWorld.paused) return;
+    _gameWorld.resumeEngine();
+    _focusNode.requestFocus();
   }
 
   @override
@@ -156,8 +168,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 'hud': (context, game) => const HudOverlay(),
                 'funFact': (context, game) =>
                     FunFactOverlay(game: game as GameWorld),
+                'tutorial': (context, game) =>
+                    TutorialOverlay(onStart: _dismissTutorial),
               },
-              initialActiveOverlays: const ['hud'],
+              initialActiveOverlays: const ['hud', 'tutorial'],
             ),
 
             // ─── Pause button (kanan atas) ──────────
