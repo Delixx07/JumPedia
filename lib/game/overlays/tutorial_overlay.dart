@@ -46,23 +46,27 @@ class TutorialOverlay extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // ─── Header ──────────────────────
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.lightbulb_rounded,
-                        color: AppColors.warn, size: 26),
-                    SizedBox(width: 8),
-                    Text(
-                      'How to Play',
-                      style: TextStyle(
-                        color: AppColors.textHi,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
+                Container(
+                  width: 54,
+                  height: 54,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.lightbulb_rounded,
+                      color: AppColors.warn, size: 30),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 10),
+                const Text(
+                  'How to Play',
+                  style: TextStyle(
+                    color: AppColors.textHi,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
                 const Text(
                   'Bounce up, collect items, and learn!',
                   style: TextStyle(color: AppColors.textLo, fontSize: 12.5),
@@ -76,19 +80,20 @@ class TutorialOverlay extends StatelessWidget {
                     'assets/collectibles/pencil.png',
                   ],
                   title: 'Books & Pencils',
-                  desc: '+${AppConstants.bookPoints} points each. '
-                      'Collect them to boost your score!',
+                  desc: '+${AppConstants.bookPoints} points each — '
+                      'collect them to boost your score!',
+                  accent: AppColors.primary,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
 
                 // ─── Item: Globe ─────────────────
                 const _TutorialItem(
                   imagePaths: ['assets/collectibles/globe.png'],
                   title: 'Globe',
-                  desc: 'Gives a shield or a speed boost for a few seconds. '
-                      'Grab it for power-ups!',
+                  desc: 'Gives a shield or a speed boost for a few seconds.',
+                  accent: AppColors.primary,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
 
                 // ─── Item: Sampah / Obstacle (semua bentuk) ─────
                 const _TutorialItem(
@@ -99,9 +104,10 @@ class TutorialOverlay extends StatelessWidget {
                   ],
                   title: 'Trash (Obstacles)',
                   desc: 'Avoid all trash — each hit costs a heart '
-                      '(unless you have a shield).',
+                      '(unless shielded).',
+                  accent: AppColors.danger,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
 
                 // ─── HP / Hearts ─────────────────
                 const _TutorialIconItem(
@@ -186,47 +192,112 @@ class TutorialOverlay extends StatelessWidget {
   }
 }
 
-/// Baris item tutorial: menampilkan SEMUA varian gambar + judul + deskripsi.
-class _TutorialItem extends StatelessWidget {
-  /// Satu atau lebih path gambar varian item (mis. semua jenis sampah).
-  final List<String> imagePaths;
+/// Kartu pembungkus tiap baris item — background lembut + garis aksen kiri.
+class _ItemCard extends StatelessWidget {
+  final Color accent;
+  final Widget leading;
   final String title;
   final String desc;
 
-  const _TutorialItem({
-    required this.imagePaths,
+  const _ItemCard({
+    required this.accent,
+    required this.leading,
     required this.title,
     required this.desc,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Deretan semua varian gambar.
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final path in imagePaths)
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.scaffold,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Image.asset(path, fit: BoxFit.contain),
-                ),
-              ),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.scaffold.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(14),
+        border: Border(
+          left: BorderSide(color: accent, width: 3),
         ),
-        const SizedBox(width: 10),
-        Expanded(child: _itemText(title, desc)),
-      ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          leading,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.textHi,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  desc,
+                  style: const TextStyle(
+                    color: AppColors.textLo,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Baris item tutorial: menampilkan SEMUA varian gambar + judul + deskripsi.
+class _TutorialItem extends StatelessWidget {
+  /// Satu atau lebih path gambar varian item (mis. semua jenis sampah).
+  final List<String> imagePaths;
+  final String title;
+  final String desc;
+  final Color accent;
+
+  const _TutorialItem({
+    required this.imagePaths,
+    required this.title,
+    required this.desc,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _ItemCard(
+      accent: accent,
+      title: title,
+      desc: desc,
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final path in imagePaths)
+            Padding(
+              padding: const EdgeInsets.only(right: 5),
+              child: Container(
+                width: 40,
+                height: 40,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                child: Image.asset(path, fit: BoxFit.contain),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -247,48 +318,26 @@ class _TutorialIconItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.scaffold,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: iconColor, size: 26),
+    return _ItemCard(
+      accent: iconColor,
+      title: title,
+      desc: desc,
+      leading: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(9),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 4,
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(child: _itemText(title, desc)),
-      ],
+        child: Icon(icon, color: iconColor, size: 24),
+      ),
     );
   }
-}
-
-/// Teks judul + deskripsi (dipakai bersama oleh kedua jenis item).
-Widget _itemText(String title, String desc) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        title,
-        style: const TextStyle(
-          color: AppColors.textHi,
-          fontSize: 14.5,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-      const SizedBox(height: 2),
-      Text(
-        desc,
-        style: const TextStyle(
-          color: AppColors.textLo,
-          fontSize: 12,
-          height: 1.35,
-        ),
-      ),
-    ],
-  );
 }

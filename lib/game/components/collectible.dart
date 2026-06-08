@@ -50,12 +50,16 @@ class Collectible extends SpriteComponent
   // Custom Images cache agar Flame load dari assets/collectibles/ bukan assets/images/
   static final _collectiblesImages = Images(prefix: 'assets/collectibles/');
 
+  /// Lebar/tinggi sprite collectible. Dipakai juga oleh logika spawn di
+  /// GameWorld untuk menghindari obstacle yang menimpa collectible.
+  static const double kSize = 40;
+
   Collectible({
     required Vector2 position,
     required this.type,
   }) : super(
           position: position,
-          size: Vector2(40, 40),
+          size: Vector2(kSize, kSize),
           anchor: Anchor.center,
         );
 

@@ -3,122 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../main.dart';
-import '../../providers/auth_provider.dart';
+import '../../core/i18n/app_strings.dart';
+import '../../providers/audio_provider.dart';
 import '../../providers/language_provider.dart';
-import '../../services/user_service.dart';
-import '../widgets/sdg_button.dart';
+import '../../providers/ui_language_provider.dart';
 
-/// Settings Screen — Update profil, delete account, dev-only reset.
-class SettingsScreen extends ConsumerStatefulWidget {
+/// Settings Screen — switch bahasa fun fact & pengaturan volume audio.
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final volumes = ref.watch(audioVolumeProvider);
+    final s = ref.watch(uiStringsProvider);
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final _usernameController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCurrentUsername();
-  }
-
-  Future<void> _loadCurrentUsername() async {
-    final uid = ref.read(currentUserUidProvider);
-    if (uid == null) return;
-    try {
-      final userService = UserService();
-      final user = await userService.getUser(uid);
-      if (user != null && mounted) {
-        _usernameController.text = user.username;
-      }
-    } catch (_) {
-      // ignore errors; controller stays empty
-    }
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _updateUsername() async {
-    final uid = ref.read(currentUserUidProvider);
-    if (uid == null || _usernameController.text.trim().isEmpty) return;
-    setState(() => _isLoading = true);
-    try {
-      final userService = UserService();
-      // CRUD: UPDATE
-      await userService.updateUsername(uid, _usernameController.text.trim());
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Username updated successfully!'), backgroundColor: AppColors.success),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.danger),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _deleteAccount() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgMid,
-        title: const Text('Delete Account?', style: TextStyle(color: AppColors.textHi)),
-        content: const Text('All your data will be permanently deleted.', style: TextStyle(color: AppColors.textLo)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: AppColors.danger)),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    setState(() => _isLoading = true);
-    try {
-      final authService = ref.read(authServiceProvider);
-      await authService.deleteAccount();
-      if (mounted) context.go('/login');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.danger),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _signOut() async {
-    final authService = ref.read(authServiceProvider);
-    await authService.signOut();
-    if (mounted) context.go('/login');
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter, end: Alignment.bottomCenter,
-            colors: [AppColors.bgTop, AppColors.bgMid],
-          ),
+          color: AppColors.scaffold,
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -127,37 +29,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  IconButton(onPressed: () => context.go('/home'), icon: const Icon(Icons.arrow_back_ios, color: AppColors.textHi)),
-                  const Text('Settings', style: TextStyle(color: AppColors.textHi, fontSize: 24, fontWeight: FontWeight.w800)),
+                  IconButton(
+                    onPressed: () => context.go('/home'),
+                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.textHi),
+                  ),
+                  Text(s.settings,
+                      style: const TextStyle(
+                          color: AppColors.textHi,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800)),
                 ]),
                 const SizedBox(height: 32),
 
-                // Update Username
-                const Text('Update Username', style: TextStyle(color: AppColors.textHi, fontSize: 16, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _usernameController,
-                  style: const TextStyle(color: AppColors.textHi),
-                  decoration: InputDecoration(
-                    hintText: 'New username',
-                    hintStyle: const TextStyle(color: AppColors.textLo),
-                    filled: true,
-                    fillColor: AppColors.bgMid,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    prefixIcon: const Icon(Icons.person, color: AppColors.primary),
-                  ),
-                ),
+                // ─── App Language (UI) ────────────────
+                _SectionLabel(s.appLanguage),
+                const SizedBox(height: 4),
+                Text(s.appLanguageDesc,
+                    style: const TextStyle(color: AppColors.textLo, fontSize: 12)),
                 const SizedBox(height: 12),
-                SdgButton(text: 'Save', icon: Icons.save, onPressed: _updateUsername, isLoading: _isLoading),
+                _UiLanguageSelector(
+                  selected: ref.watch(uiLanguageProvider),
+                  onChanged: (lang) =>
+                      ref.read(uiLanguageProvider.notifier).setLanguage(lang),
+                ),
                 const SizedBox(height: 32),
 
-                // Fun Fact Language
-                const Text('Fun Fact Language', style: TextStyle(color: AppColors.textHi, fontSize: 16, fontWeight: FontWeight.w600)),
+                // ─── Fun Fact Language ────────────────
+                _SectionLabel(s.funFactLanguage),
                 const SizedBox(height: 4),
-                const Text(
-                  'Language used for the science fun facts shown during the game.',
-                  style: TextStyle(color: AppColors.textLo, fontSize: 12),
-                ),
+                Text(s.funFactLanguageDesc,
+                    style: const TextStyle(color: AppColors.textLo, fontSize: 12)),
                 const SizedBox(height: 12),
                 _LanguageSelector(
                   selected: ref.watch(factLanguageProvider),
@@ -166,51 +67,231 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Dev-only: Reset High Score
-                if (AppConfig.isDev) ...[
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                // ─── Background Music Volume ──────────
+                _SectionLabel(s.backgroundMusic),
+                const SizedBox(height: 4),
+                Text(s.backgroundMusicDesc,
+                    style: const TextStyle(color: AppColors.textLo, fontSize: 12)),
+                const SizedBox(height: 4),
+                _VolumeSlider(
+                  icon: Icons.music_note_rounded,
+                  value: volumes.bgm,
+                  onChanged: (v) =>
+                      ref.read(audioVolumeProvider.notifier).setBgmVolume(v),
+                ),
+                const SizedBox(height: 24),
+
+                // ─── Sound Effects Volume ─────────────
+                _SectionLabel(s.soundEffects),
+                const SizedBox(height: 4),
+                Text(s.soundEffectsDesc,
+                    style: const TextStyle(color: AppColors.textLo, fontSize: 12)),
+                const SizedBox(height: 4),
+                _VolumeSlider(
+                  icon: Icons.graphic_eq_rounded,
+                  value: volumes.sfx,
+                  onChanged: (v) =>
+                      ref.read(audioVolumeProvider.notifier).setSfxVolume(v),
+                ),
+                const SizedBox(height: 24),
+
+                // ─── Mute All ─────────────────────────
+                _ToggleRow(
+                  icon: ref.watch(mutedProvider)
+                      ? Icons.volume_off_rounded
+                      : Icons.volume_up_rounded,
+                  title: s.muteAll,
+                  subtitle: s.muteAllDesc,
+                  value: ref.watch(mutedProvider),
+                  onChanged: (_) =>
+                      ref.read(mutedProvider.notifier).toggle(),
+                ),
+                const SizedBox(height: 8),
+
+                // ─── Haptic / Vibration ───────────────
+                _ToggleRow(
+                  icon: Icons.vibration_rounded,
+                  title: s.vibration,
+                  subtitle: s.vibrationDesc,
+                  value: ref.watch(hapticEnabledProvider),
+                  onChanged: (_) =>
+                      ref.read(hapticEnabledProvider.notifier).toggle(),
+                ),
+                const SizedBox(height: 24),
+
+                // ─── About App ────────────────────────
+                InkWell(
+                  onTap: () => context.go('/about'),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
                       children: [
-                        const Row(children: [
-                          Icon(Icons.bug_report, color: Colors.orange, size: 20),
-                          SizedBox(width: 8),
-                          Text('Developer Tools', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
-                        ]),
-                        const SizedBox(height: 12),
-                        SdgButton(
-                          text: 'Reset High Score',
-                          icon: Icons.restore,
-                          style: SdgButtonStyle.danger,
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('High score reset (dev only)')),
-                            );
-                          },
+                        const Icon(Icons.info_outline_rounded,
+                            color: AppColors.primary, size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(s.aboutApp,
+                                  style: const TextStyle(
+                                      color: AppColors.textHi,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600)),
+                              Text(s.aboutAppDesc,
+                                  style: const TextStyle(
+                                      color: AppColors.textLo, fontSize: 12)),
+                            ],
+                          ),
                         ),
+                        const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.textLo),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
-                ],
-
-                // Sign Out
-                SdgButton(text: 'Sign Out', icon: Icons.logout, style: SdgButtonStyle.secondary, onPressed: _signOut),
-                const SizedBox(height: 16),
-
-                // Delete Account
-                SdgButton(text: 'Delete Account', icon: Icons.delete_forever, style: SdgButtonStyle.danger, onPressed: _deleteAccount),
+                ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Label section seragam.
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+          color: AppColors.textHi, fontSize: 16, fontWeight: FontWeight.w600),
+    );
+  }
+}
+
+/// Slider volume 0–100% dengan ikon + label persen.
+class _VolumeSlider extends StatelessWidget {
+  final IconData icon;
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  const _VolumeSlider({
+    required this.icon,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.primary, size: 22),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: AppColors.primary,
+              inactiveTrackColor: AppColors.primary.withValues(alpha: 0.2),
+              thumbColor: AppColors.primary,
+              overlayColor: AppColors.primary.withValues(alpha: 0.15),
+            ),
+            child: Slider(
+              value: value,
+              min: 0.0,
+              max: 1.0,
+              divisions: 20,
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 44,
+          child: Text(
+            '${(value * 100).round()}%',
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+                color: AppColors.textHi, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Baris toggle dengan ikon, judul, subjudul, dan switch.
+class _ToggleRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ToggleRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.primary, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      color: AppColors.textHi,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600)),
+              Text(subtitle,
+                  style: const TextStyle(
+                      color: AppColors.textLo, fontSize: 12)),
+            ],
+          ),
+        ),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: AppColors.primary,
+        ),
+      ],
+    );
+  }
+}
+
+/// Pemilih bahasa UI — toggle (English / Bahasa Indonesia).
+class _UiLanguageSelector extends StatelessWidget {
+  final UiLanguage selected;
+  final ValueChanged<UiLanguage> onChanged;
+
+  const _UiLanguageSelector({required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final lang in UiLanguage.values) ...[
+          Expanded(
+            child: _LanguageChip(
+              label: lang.label,
+              isSelected: lang == selected,
+              onTap: () => onChanged(lang),
+            ),
+          ),
+          if (lang != UiLanguage.values.last) const SizedBox(width: 12),
+        ],
+      ],
     );
   }
 }

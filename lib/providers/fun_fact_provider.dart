@@ -3,6 +3,8 @@
 import '../models/fun_fact_model.dart';
 import '../services/fun_fact_service.dart';
 import '../services/gemini_fun_fact_service.dart';
+import 'auth_provider.dart';
+import 'collected_fact_provider.dart';
 import 'language_provider.dart';
 
 /// ═══════════════════════════════════════
@@ -59,7 +61,20 @@ final aiFunFactProvider =
   // Baca (bukan watch) bahasa: fakta untuk checkpoint ini dibuat sekali
   // dengan bahasa yang aktif saat checkpoint terpicu.
   final language = ref.read(factLanguageProvider);
-  return service.generateFact(language: language);
+
+  // Anti-duplikat lintas-sesi: ambil isi fakta yang sudah dikoleksi user agar
+  // AI tidak mengulang fakta yang sudah ada di koleksinya.
+  var avoid = const <String>{};
+  final uid = ref.read(currentUserUidProvider);
+  if (uid != null) {
+    try {
+      avoid = await ref.read(collectedFactServiceProvider).getCollectedContents(uid);
+    } catch (_) {
+      // gagal baca koleksi — lanjut tanpa daftar hindari.
+    }
+  }
+
+  return service.generateFact(language: language, avoidContents: avoid);
 });
 
 /// FutureProvider: mengambil semua fun facts dari Firestore.

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../providers/score_provider.dart';
+import '../../providers/ui_language_provider.dart';
 import '../widgets/sdg_button.dart';
 
 /// ═══════════════════════════════════════
@@ -18,17 +19,14 @@ class GameOverScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final finalScore = ref.read(scoreProvider);
+    final s = ref.watch(uiStringsProvider);
 
     return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.bgTop, AppColors.bgMid],
-          ),
+          color: AppColors.scaffold,
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -48,9 +46,9 @@ class GameOverScreen extends ConsumerWidget {
                   size: 64,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'GAME OVER',
-                  style: TextStyle(
+                Text(
+                  s.gameOver,
+                  style: const TextStyle(
                     color: AppColors.danger,
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
@@ -58,10 +56,10 @@ class GameOverScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Your character is gone... but the knowledge stays 📚',
+                Text(
+                  s.gameOverSubtitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.textLo,
                     fontSize: 13,
                   ),
@@ -73,9 +71,7 @@ class GameOverScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.bgMid, AppColors.bgTop],
-                    ),
+                    color: AppColors.bgMid,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: AppColors.warn.withValues(alpha: 0.5),
@@ -96,9 +92,9 @@ class GameOverScreen extends ConsumerWidget {
                         size: 44,
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        'FINAL SCORE',
-                        style: TextStyle(
+                      Text(
+                        s.finalScore,
+                        style: const TextStyle(
                           color: AppColors.warn,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -122,13 +118,13 @@ class GameOverScreen extends ConsumerWidget {
 
                 // ─── Action Buttons ──────────────────
                 SdgButton(
-                  text: 'Restart — Play Again',
+                  text: s.playAgain,
                   icon: Icons.refresh_rounded,
                   onPressed: () => context.go('/game'),
                 ),
                 const SizedBox(height: 12),
                 SdgButton(
-                  text: 'Back to Home',
+                  text: s.backToHome,
                   icon: Icons.home_rounded,
                   style: SdgButtonStyle.secondary,
                   onPressed: () => context.go('/home'),
@@ -141,9 +137,9 @@ class GameOverScreen extends ConsumerWidget {
                     color: AppColors.textLo,
                     size: 18,
                   ),
-                  label: const Text(
-                    'View Leaderboard',
-                    style: TextStyle(color: AppColors.textLo),
+                  label: Text(
+                    s.viewLeaderboard,
+                    style: const TextStyle(color: AppColors.textLo),
                   ),
                 ),
 

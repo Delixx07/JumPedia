@@ -81,12 +81,7 @@ class _SplashScreenState extends State<SplashScreen>
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const RadialGradient(
-                          colors: [
-                            AppColors.primaryLight,
-                            AppColors.primary,
-                          ],
-                        ),
+                        color: AppColors.primary,
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.7),
                           width: 2,
@@ -108,28 +103,12 @@ class _SplashScreenState extends State<SplashScreen>
 
                     const SizedBox(height: 32),
 
-                    // ─── Title ────────────────────
-                    const Text(
-                      'JumPedia',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 40,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // ─── Subtitle ────────────────
-                    const Text(
-                      'Learn While You Jump 🚀',
-                      style: TextStyle(
-                        color: AppColors.textLo,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: 1,
-                      ),
+                    // ─── Logo (gambar brand) ──────
+                    Image.asset(
+                      'assets/images/logo_jumpedia.png',
+                      height: 120,
+                      fit: BoxFit.contain,
+                      cacheWidth: 800,
                     ),
 
                     const SizedBox(height: 48),

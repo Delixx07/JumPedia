@@ -24,14 +24,27 @@ class CollectedFactService {
   /// Menggunakan `factId` sebagai document ID agar idempotent
   /// (memanggil method ini berkali-kali untuk fact yang sama tidak duplikat).
   /// Tidak menimpa `collected_at` jika sudah ada.
-  Future<void> collectFact(String uid, FunFactModel fact) async {
+  ///
+  /// Mengembalikan `true` jika fakta benar-benar disimpan, `false` jika
+  /// dilewati karena duplikat (factId sama ATAU isi/content identik dengan
+  /// fakta yang sudah ada — penting karena factId AI selalu unik per waktu).
+  Future<bool> collectFact(String uid, FunFactModel fact) async {
     final docRef = _collection(uid).doc(fact.factId);
     final existing = await docRef.get();
 
     if (existing.exists) {
       AppLogger.firestore('SKIP', FirestorePaths.collectedFactsPath(uid),
           detail: 'Fact ${fact.factId} already collected');
-      return;
+      return false;
+    }
+
+    // Anti-duplikat berbasis isi: jika konten yang sama sudah pernah dikoleksi,
+    // jangan simpan lagi (mencegah kartu kembar di koleksi).
+    final contents = await getCollectedContents(uid);
+    if (contents.contains(fact.content.trim().toLowerCase())) {
+      AppLogger.firestore('SKIP', FirestorePaths.collectedFactsPath(uid),
+          detail: 'Duplicate content skipped');
+      return false;
     }
 
     // CRUD: CREATE
@@ -44,6 +57,7 @@ class CollectedFactService {
 
     AppLogger.firestore('CREATE', FirestorePaths.collectedFactsPath(uid),
         detail: 'Fact ${fact.factId} collected');
+    return true;
   }
 
   /// ═══════════════════════════════════════
@@ -59,6 +73,22 @@ class CollectedFactService {
         detail: 'Fetched ${query.docs.length} collected facts');
 
     return query.docs.map((d) => CollectedFactModel.fromFirestore(d)).toList();
+  }
+
+  /// ═══════════════════════════════════════
+  /// READ — Daftar isi (content) fakta yang sudah dikoleksi user.
+  /// ═══════════════════════════════════════
+  /// Dipakai untuk anti-duplikat: konten ini dikirim ke AI sebagai daftar
+  /// "jangan ulang", dan dicek sebelum menyimpan fakta checkpoint baru.
+  /// Dinormalisasi (lowercase + trim) agar perbandingan tahan beda spasi/kapital.
+  Future<Set<String>> getCollectedContents(String uid) async {
+    final query = await _collection(uid).get();
+    return query.docs
+        .map((d) => (d.data()[FirestorePaths.fieldContent] as String? ?? '')
+            .trim()
+            .toLowerCase())
+        .where((c) => c.isNotEmpty)
+        .toSet();
   }
 
   /// ═══════════════════════════════════════

@@ -5,6 +5,8 @@ import '../../core/constants/app_colors.dart';
 import '../../models/collected_fact_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/collected_fact_provider.dart';
+import '../../providers/ui_language_provider.dart';
+import '../widgets/state_views.dart';
 
 /// ═══════════════════════════════════════
 /// FUN FACTS SCREEN — JumPedia
@@ -26,6 +28,7 @@ class FunFactsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final collectedAsync = ref.watch(collectedFactsStreamProvider);
+    final s = ref.watch(uiStringsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -46,14 +49,14 @@ class FunFactsScreen extends ConsumerWidget {
                     cacheWidth: 168,
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Fun Facts Collection',
-                          style: TextStyle(
+                          s.funFactsCollection,
+                          style: const TextStyle(
                             color: AppColors.textHi,
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
@@ -61,8 +64,8 @@ class FunFactsScreen extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          'Collect a science fact at every checkpoint',
-                          style: TextStyle(
+                          s.funFactsCollectionDesc,
+                          style: const TextStyle(
                             color: AppColors.textLo,
                             fontSize: 11.5,
                             fontWeight: FontWeight.w500,
@@ -73,7 +76,7 @@ class FunFactsScreen extends ConsumerWidget {
                   ),
                   // Reset all — DELETE batch
                   IconButton(
-                    tooltip: 'Reset collection',
+                    tooltip: s.resetCollection,
                     icon: const Icon(Icons.delete_sweep_rounded,
                         color: AppColors.danger),
                     onPressed: () => _confirmResetAll(context, ref),
@@ -83,29 +86,18 @@ class FunFactsScreen extends ConsumerWidget {
             ),
 
             // ─── Counter koleksi ─────────────────
-            _CollectionCounter(collectedAsync: collectedAsync),
+            _CollectionCounter(collectedAsync: collectedAsync, label: s.factsCollected),
 
             const SizedBox(height: 12),
 
             // ─── Grid ────────────────────────────
             Expanded(
               child: collectedAsync.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-                error: (e, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      'Failed to load collection:\n$e',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textLo),
-                    ),
-                  ),
-                ),
+                loading: () => const LoadingView(),
+                error: (e, _) => ErrorView(message: '${s.error}: $e'),
                 data: (collected) {
                   if (collected.isEmpty) {
-                    return const _EmptyState();
+                    return _EmptyState(message: s.noFactsYet);
                   }
 
                   return GridView.builder(
@@ -144,6 +136,7 @@ class FunFactsScreen extends ConsumerWidget {
     WidgetRef ref,
     CollectedFactModel fact,
   ) async {
+    final s = ref.read(uiStringsProvider);
     showDialog<void>(
       context: context,
       builder: (ctx) => Dialog(
@@ -160,10 +153,10 @@ class FunFactsScreen extends ConsumerWidget {
                 children: [
                   const Icon(Icons.science_rounded, color: AppColors.warn),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Science Fun Fact',
-                      style: TextStyle(
+                      s.scienceFunFact,
+                      style: const TextStyle(
                         color: AppColors.textHi,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -223,16 +216,16 @@ class FunFactsScreen extends ConsumerWidget {
                     },
                     icon: const Icon(Icons.delete_outline_rounded,
                         color: Colors.redAccent, size: 18),
-                    label: const Text(
-                      'Delete',
-                      style: TextStyle(color: Colors.redAccent),
+                    label: Text(
+                      s.delete,
+                      style: const TextStyle(color: Colors.redAccent),
                     ),
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text(
-                      'Close',
-                      style: TextStyle(color: Colors.white70),
+                    child: Text(
+                      s.close,
+                      style: const TextStyle(color: AppColors.textLo),
                     ),
                   ),
                 ],
@@ -305,29 +298,29 @@ class FunFactsScreen extends ConsumerWidget {
 
   // ─── DELETE batch ─────────────────────────────────────
   Future<void> _confirmResetAll(BuildContext context, WidgetRef ref) async {
+    final s = ref.read(uiStringsProvider);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgMid,
-        title: const Text(
-          'Reset Collection?',
-          style: TextStyle(color: AppColors.textHi),
+        title: Text(
+          s.resetCollection,
+          style: const TextStyle(color: AppColors.textHi),
         ),
-        content: const Text(
-          'All facts you have collected will be deleted. '
-          'This action cannot be undone.',
-          style: TextStyle(color: AppColors.textLo),
+        content: Text(
+          s.resetCollectionDesc,
+          style: const TextStyle(color: AppColors.textLo),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textLo)),
+            child: Text(s.cancel,
+                style: const TextStyle(color: AppColors.textLo)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reset',
-                style: TextStyle(color: AppColors.danger)),
+            child: Text(s.reset,
+                style: const TextStyle(color: AppColors.danger)),
           ),
         ],
       ),
@@ -359,7 +352,8 @@ class FunFactsScreen extends ConsumerWidget {
 // ─── Counter koleksi di atas grid ──────────────────────
 class _CollectionCounter extends StatelessWidget {
   final AsyncValue<List<CollectedFactModel>> collectedAsync;
-  const _CollectionCounter({required this.collectedAsync});
+  final String label;
+  const _CollectionCounter({required this.collectedAsync, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -383,10 +377,10 @@ class _CollectionCounter extends StatelessWidget {
           const Icon(Icons.auto_stories_rounded,
               color: AppColors.primary, size: 20),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Facts collected',
-              style: TextStyle(
+              label,
+              style: const TextStyle(
                 color: AppColors.textLo,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -522,7 +516,8 @@ class _FactCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final String message;
+  const _EmptyState({required this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -539,22 +534,12 @@ class _EmptyState extends StatelessWidget {
               cacheWidth: 540,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No facts collected yet',
-              style: TextStyle(
+            Text(
+              message,
+              style: const TextStyle(
                 color: AppColors.textHi,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Play the game and reach checkpoints to collect '
-              'science fun facts! 🚀',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textLo,
-                fontSize: 12,
               ),
             ),
           ],

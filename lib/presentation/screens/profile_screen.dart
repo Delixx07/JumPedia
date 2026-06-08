@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/ui_language_provider.dart';
+import '../widgets/state_views.dart';
 import '../../services/user_service.dart';
 import '../widgets/sdg_button.dart';
 
@@ -67,8 +69,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
+          SnackBar(
+            content: Text(ref.read(uiStringsProvider).profileUpdated),
             backgroundColor: AppColors.success,
           ),
         );
@@ -76,7 +78,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.danger),
+          SnackBar(content: Text('${ref.read(uiStringsProvider).error}: $e'), backgroundColor: AppColors.danger),
         );
       }
     } finally {
@@ -87,6 +89,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final userAsync = ref.watch(_userProfileProvider);
+    final s = ref.watch(uiStringsProvider);
     final authUser = FirebaseAuth.instance.currentUser;
     final isAnonymous = authUser?.isAnonymous ?? true;
 
@@ -95,11 +98,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.bgTop, AppColors.bgMid],
-          ),
+          color: AppColors.scaffold,
         ),
         child: SafeArea(
           child: userAsync.when(
@@ -114,26 +113,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         const Icon(Icons.account_circle_outlined, size: 80, color: AppColors.primary),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Fitur Khusus Akun Google',
+                        Text(
+                          s.googleOnlyTitle,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textHi, fontSize: 20, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: AppColors.textHi, fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Simpan progres bermain dan kustomisasi profil Anda dengan masuk menggunakan Google.',
+                        Text(
+                          s.googleOnlyDesc,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textLo),
+                          style: const TextStyle(color: AppColors.textLo),
                         ),
                         const SizedBox(height: 32),
                         SdgButton(
-                          text: 'Login with Google Sekarang',
+                          text: s.loginWithGoogleNow,
                           icon: Icons.login,
                           onPressed: () => context.go('/login'),
                         ),
                         const SizedBox(height: 12),
                         SdgButton(
-                          text: 'Kembali ke Beranda',
+                          text: s.backToHome,
                           icon: Icons.home,
                           style: SdgButtonStyle.secondary,
                           onPressed: () => context.go('/home'),
@@ -162,11 +161,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           onPressed: () => context.go('/home'),
                           icon: const Icon(Icons.arrow_back_ios, color: AppColors.textHi),
                         ),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'My Profile',
+                            s.myProfile,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppColors.textHi,
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -196,7 +195,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => _showAvatarPicker(context),
+                          onTap: () => _showAvatarPicker(context, s.chooseAvatar),
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
@@ -212,13 +211,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 32),
 
                     // ─── User Info Cards ──────────────
-                    _buildSectionTitle('Account Info'),
+                    _buildSectionTitle(s.accountInfo),
                     const SizedBox(height: 12),
-                    
+
                     // Email (Read-only)
                     _buildInfoTile(
-                      label: 'Email Address',
-                      value: authUser?.email ?? (authUser?.isAnonymous == true ? 'Guest Account' : 'No Email'),
+                      label: s.emailAddress,
+                      value: authUser?.email ?? (authUser?.isAnonymous == true ? s.guestAccount : s.noEmail),
                       icon: Icons.email_outlined,
                       isReadOnly: true,
                     ),
@@ -230,9 +229,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       controller: _usernameController,
                       style: const TextStyle(color: AppColors.textHi),
                       decoration: InputDecoration(
-                        labelText: 'Username',
+                        labelText: s.username,
                         labelStyle: const TextStyle(color: AppColors.primary),
-                        hintText: 'Enter your username',
+                        hintText: s.enterUsername,
                         hintStyle: const TextStyle(color: AppColors.textLo),
                         prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
                         filled: true,
@@ -247,7 +246,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 32),
 
                     // ─── Statistics ───────────────────
-                    _buildSectionTitle('Game Statistics'),
+                    _buildSectionTitle(s.gameStatistics),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -260,10 +259,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         children: [
                           const Icon(Icons.sports_esports, color: AppColors.accent),
                           const SizedBox(width: 16),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Total Games Played',
-                              style: TextStyle(color: AppColors.textLo),
+                              s.totalGamesPlayed,
+                              style: const TextStyle(color: AppColors.textLo),
                             ),
                           ),
                           Text(
@@ -281,19 +280,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 32),
 
                     // ─── Preferences ──────────────────
-                    _buildSectionTitle('Preferences'),
+                    _buildSectionTitle(s.preferences),
                     const SizedBox(height: 12),
                     SwitchListTile(
-                      title: const Text(
-                        'Educational Notifications',
-                        style: TextStyle(color: AppColors.textHi, fontWeight: FontWeight.w600),
+                      title: Text(
+                        s.eduNotifications,
+                        style: const TextStyle(color: AppColors.textHi, fontWeight: FontWeight.w600),
                       ),
-                      subtitle: const Text(
-                        'Receive daily SDG 4 fun facts',
-                        style: TextStyle(color: AppColors.textLo, fontSize: 12),
+                      subtitle: Text(
+                        s.eduNotificationsDesc,
+                        style: const TextStyle(color: AppColors.textLo, fontSize: 12),
                       ),
                       value: user.notificationsEnabled,
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                       contentPadding: EdgeInsets.zero,
                       onChanged: (val) {
                         UserService().updateNotificationPreference(user.uid, val);
@@ -304,7 +303,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                     // ─── Save Button ──────────────────
                     SdgButton(
-                      text: 'Save Changes',
+                      text: s.saveChanges,
                       icon: Icons.check_circle_outline,
                       isLoading: _isSaving,
                       onPressed: () => _saveProfile(user.uid),
@@ -313,8 +312,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-            error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.danger))),
+            loading: () => const LoadingView(),
+            error: (e, _) => ErrorView(message: '${s.error}: $e'),
           ),
         ),
       ),
@@ -372,7 +371,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _showAvatarPicker(BuildContext context) {
+  void _showAvatarPicker(BuildContext context, String title) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.bgMid,
@@ -385,9 +384,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Choose Your Avatar',
-                style: TextStyle(
+              Text(
+                title,
+                style: const TextStyle(
                   color: AppColors.textHi,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,

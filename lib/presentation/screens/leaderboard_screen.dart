@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../models/leaderboard_model.dart';
+import '../../providers/ui_language_provider.dart';
 import '../../services/score_service.dart';
+import '../widgets/state_views.dart';
 
 /// Leaderboard Screen — Top scores dari semua pemain.
 final topScoresProvider = FutureProvider<List<LeaderboardModel>>((ref) async {
@@ -18,15 +20,12 @@ class LeaderboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scoresAsync = ref.watch(topScoresProvider);
+    final s = ref.watch(uiStringsProvider);
 
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.bgTop, AppColors.bgMid],
-          ),
+          color: AppColors.scaffold,
         ),
         child: SafeArea(
           child: Column(
@@ -39,9 +38,9 @@ class LeaderboardScreen extends ConsumerWidget {
                       onPressed: () => context.go('/home'),
                       icon: const Icon(Icons.arrow_back_ios, color: AppColors.textHi),
                     ),
-                    const Expanded(
-                      child: Text('Leaderboard', textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.textHi, fontSize: 24, fontWeight: FontWeight.w800)),
+                    Expanded(
+                      child: Text(s.leaderboard, textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textHi, fontSize: 24, fontWeight: FontWeight.w800)),
                     ),
                     IconButton(
                       onPressed: () => ref.invalidate(topScoresProvider),
@@ -54,11 +53,17 @@ class LeaderboardScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Expanded(
                 child: scoresAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                  error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.danger))),
+                  loading: () => const LoadingView(),
+                  error: (e, _) => ErrorView(
+                    message: '${s.error}: $e',
+                    onRetry: () => ref.invalidate(topScoresProvider),
+                  ),
                   data: (scores) {
                     if (scores.isEmpty) {
-                      return const Center(child: Text('No scores yet', style: TextStyle(color: AppColors.textLo)));
+                      return EmptyView(
+                        icon: Icons.emoji_events_outlined,
+                        title: s.noScoresYet,
+                      );
                     }
                     return ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -84,7 +89,7 @@ class LeaderboardScreen extends ConsumerWidget {
                           child: Row(children: [
                             Text('#$rank', style: TextStyle(color: rankColor, fontSize: 16, fontWeight: FontWeight.w700)),
                             const SizedBox(width: 16),
-                            Expanded(child: Text(entry.username ?? 'Player', style: const TextStyle(color: AppColors.textHi, fontSize: 16))),
+                            Expanded(child: Text(entry.username ?? s.player, style: const TextStyle(color: AppColors.textHi, fontSize: 16))),
                             Text('${entry.score}', style: const TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.w800)),
                           ]),
                         );

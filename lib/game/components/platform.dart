@@ -1,5 +1,4 @@
 ﻿import 'dart:async';
-import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
@@ -152,35 +151,4 @@ class Platform extends PositionComponent with CollisionCallbacks {
     });
   }
 
-  /// Factory method untuk membuat platform random.
-  static Platform random({
-    required double x,
-    required double y,
-    required double screenWidth,
-    Random? rng,
-  }) {
-    final random = rng ?? Random();
-    final roll = random.nextDouble();
-
-    // 60% normal, 25% moving, 15% breakable
-    PlatformType type;
-    if (roll < 0.60) {
-      type = PlatformType.normal;
-    } else if (roll < 0.85) {
-      type = PlatformType.moving;
-    } else {
-      type = PlatformType.breakable;
-    }
-
-    // Variasi lebar platform
-    final width =
-        AppConstants.platformWidth + random.nextDouble() * 40; // 80-120 pixel
-
-    return Platform(
-      position: Vector2(x, y),
-      type: type,
-      width: width,
-      screenWidth: screenWidth,
-    );
-  }
 }

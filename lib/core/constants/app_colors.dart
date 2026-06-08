@@ -51,35 +51,28 @@ class AppColors {
   // ─── Borders / dividers ──────────────
   static const Color border = Color(0x331C4E8C);
 
-  // ─── Gradients ────────────────────────
-  /// Gradient utama untuk background hero (Home, Splash, etc).
+  // ─── Flat surfaces (no gradients) ─────
+  // Desain flat: tidak ada gradiasi. "Gradient" di bawah dipertahankan
+  // sebagai alias agar widget lama tetap kompatibel, tapi tiap definisi
+  // memakai satu warna solid (dua stop identik) sehingga tampak rata.
+
+  /// Background utama scaffold — biru muda pastel solid.
   static const LinearGradient heroGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [bgTop, bgBottom],
+    colors: [scaffold, scaffold],
   );
 
-  /// Gradient untuk tombol primary & accent surface (biru → biru muda).
+  /// Surface biru solid untuk CTA / accent surface.
   static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-    colors: [primaryLight, primary],
+    colors: [primary, primary],
   );
 
-  /// Gradient lembut untuk surface card.
-  static LinearGradient cardGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Colors.white.withValues(alpha: 0.95),
-      Colors.white.withValues(alpha: 0.75),
-    ],
+  /// Surface card — putih solid.
+  static const LinearGradient cardGradient = LinearGradient(
+    colors: [bgMid, bgMid],
   );
 
-  /// Gradient untuk kartu reward / fun fact (biru muda → biru).
+  /// Surface kartu reward / fun fact — biru solid.
   static const LinearGradient accentCardGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [primaryLight, primary],
+    colors: [primary, primary],
   );
 }

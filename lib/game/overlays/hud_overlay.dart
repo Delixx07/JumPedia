@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../providers/audio_provider.dart';
 import '../../providers/hp_provider.dart';
 import '../../providers/score_provider.dart';
 
@@ -20,6 +21,7 @@ class HudOverlay extends ConsumerWidget {
     // Watch skor dan HP secara real-time
     final score = ref.watch(scoreProvider);
     final hp = ref.watch(hpProvider);
+    final muted = ref.watch(mutedProvider);
 
     return SafeArea(
       child: Padding(
@@ -30,8 +32,18 @@ class HudOverlay extends ConsumerWidget {
             // ─── HP Bar ──────────────────────
             _buildHpBar(hp),
 
-            // ─── Score Display ───────────────
-            _buildScoreDisplay(score),
+            // ─── Score + Tombol Mute Cepat ───
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildScoreDisplay(score),
+                const SizedBox(width: 8),
+                _MuteButton(
+                  muted: muted,
+                  onTap: () => ref.read(mutedProvider.notifier).toggle(),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -109,6 +121,42 @@ class HudOverlay extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Tombol mute cepat (🔊/🔇) — mematikan/menghidupkan semua audio sekaligus.
+class _MuteButton extends StatelessWidget {
+  final bool muted;
+  final VoidCallback onTap;
+
+  const _MuteButton({required this.muted, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: (muted ? AppColors.danger : AppColors.accent)
+                  .withValues(alpha: 0.6),
+              width: 1,
+            ),
+          ),
+          child: Icon(
+            muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+            color: muted ? AppColors.danger : Colors.white,
+            size: 22,
+          ),
+        ),
       ),
     );
   }

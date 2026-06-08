@@ -26,11 +26,15 @@ class Obstacle extends SpriteComponent
   ];
   static final _rng = Random();
 
+  /// Lebar/tinggi obstacle (kotak). Dipakai juga oleh logika spawn di
+  /// GameWorld untuk menghitung tumpang tindih.
+  static const double kSize = 42;
+
   Obstacle({
     required Vector2 position,
   }) : super(
           position: position,
-          size: Vector2(42, 42),
+          size: Vector2(kSize, kSize),
           anchor: Anchor.center,
         );
 

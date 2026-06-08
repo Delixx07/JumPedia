@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/ui_language_provider.dart';
 
 /// ═══════════════════════════════════════
 /// LOGIN SCREEN — JumPedia
@@ -45,7 +46,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _errorMessage = 'Sign-in failed: ${e.toString()}');
+        setState(() => _errorMessage =
+            ref.read(uiStringsProvider).signInFailed(e.toString()));
       }
     } finally {
       if (mounted) setState(() => _isLoadingGoogle = false);
@@ -66,7 +68,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _errorMessage = 'Guest sign-in failed: ${e.toString()}');
+        setState(() => _errorMessage =
+            ref.read(uiStringsProvider).guestSignInFailed(e.toString()));
       }
     } finally {
       if (mounted) setState(() => _isLoadingGuest = false);
@@ -75,6 +78,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(uiStringsProvider);
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       body: SafeArea(
@@ -101,10 +105,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
 
                       // ─── Heading ────────────────────
-                      const Text(
-                        'Choose how',
+                      Text(
+                        s.loginLine1,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: AppColors.textHi,
                           fontSize: 30,
                           fontWeight: FontWeight.w900,
@@ -112,10 +116,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           letterSpacing: 0.2,
                         ),
                       ),
-                      const Text(
-                        'you sign in',
+                      Text(
+                        s.loginLine2,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: AppColors.textHi,
                           fontSize: 30,
                           fontWeight: FontWeight.w900,
@@ -131,7 +135,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         primary: true,
                         icon: Icons.g_mobiledata,
                         iconSize: 30,
-                        label: 'Continue with Google',
+                        label: s.continueGoogle,
                         isLoading: _isLoadingGoogle,
                         disabled: _anyLoading && !_isLoadingGoogle,
                         onPressed: _handleGoogleSignIn,
@@ -141,7 +145,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         primary: false,
                         icon: Icons.person_outline_rounded,
                         iconSize: 20,
-                        label: 'Play as guest',
+                        label: s.playAsGuest,
                         isLoading: _isLoadingGuest,
                         disabled: _anyLoading && !_isLoadingGuest,
                         onPressed: _handleGuestSignIn,
@@ -156,10 +160,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 18),
 
                       // ─── Footer note ────────────────
-                      const Text(
-                        'Guest mode does not save progress across devices.',
+                      Text(
+                        s.guestNoProgress,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: AppColors.textLo,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w500,

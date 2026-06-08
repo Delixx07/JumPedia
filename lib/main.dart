@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'core/constants/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'core/theme/app_theme.dart';
 import 'core/utils/logger.dart';
 import 'firebase_options.dart';
 import 'providers/language_provider.dart';
@@ -16,9 +18,12 @@ import 'presentation/screens/game_screen.dart';
 import 'presentation/screens/game_over_screen.dart';
 import 'presentation/screens/leaderboard_screen.dart';
 import 'presentation/screens/settings_screen.dart';
+import 'presentation/screens/about_screen.dart';
 import 'presentation/screens/fun_facts_screen.dart';
 import 'presentation/screens/profile_screen.dart';
 import 'presentation/screens/main_shell.dart';
+import 'services/audio_service.dart';
+import 'services/haptic_service.dart';
 import 'services/notification_service.dart';
 
 /// ═══════════════════════════════════════
@@ -42,9 +47,18 @@ final GoRouter _router = GoRouter(
 
     // Routes di luar shell — fullscreen / modal.
     GoRoute(path: '/game', builder: (_, __) => const GameScreen()),
-    GoRoute(path: '/game-over', builder: (_, __) => const GameOverScreen()),
-    GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
-    GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+    GoRoute(
+        path: '/game-over',
+        pageBuilder: (_, s) => _fadePage(s, const GameOverScreen())),
+    GoRoute(
+        path: '/settings',
+        pageBuilder: (_, s) => _fadePage(s, const SettingsScreen())),
+    GoRoute(
+        path: '/about',
+        pageBuilder: (_, s) => _fadePage(s, const AboutScreen())),
+    GoRoute(
+        path: '/profile',
+        pageBuilder: (_, s) => _fadePage(s, const ProfileScreen())),
 
     // Shell dengan NavigationBar — Home / Fun Facts / Leaderboard.
     ShellRoute(
@@ -64,11 +78,39 @@ final GoRouter _router = GoRouter(
   ],
 );
 
+/// Transisi halaman fade + slide-up halus untuk route non-shell,
+/// memberi kesan navigasi yang lebih premium.
+CustomTransitionPage<void> _fadePage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    transitionDuration: const Duration(milliseconds: 260),
+    child: child,
+    transitionsBuilder: (context, animation, _, child) {
+      final curved =
+          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.03),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 /// ═══════════════════════════════════════
 /// MAIN ENTRY POINT
 /// ═══════════════════════════════════════
 Future<void> mainCommon() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Pakai font yang sudah di-bundle di assets/fonts (offline). Tanpa ini,
+  // google_fonts mengunduh font saat runtime & membuat startup freeze (ANR).
+  GoogleFonts.config.allowRuntimeFetching = false;
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -88,6 +130,13 @@ Future<void> mainCommon() async {
 
   // Muat preferensi lokal (mis. pilihan bahasa fun fact) sebelum runApp.
   final prefs = await SharedPreferences.getInstance();
+
+  // Terapkan volume tersimpan & mulai musik latar (diam jika bgm.mp3 belum ada).
+  AudioService.setBgmVolume(prefs.getDouble('audio_bgm_volume') ?? 0.5);
+  AudioService.setSfxVolume(prefs.getDouble('audio_sfx_volume') ?? 0.8);
+  AudioService.setMuted(prefs.getBool('audio_muted') ?? false);
+  HapticService.setEnabled(prefs.getBool('haptic_enabled') ?? true);
+  AudioService.startBgm();
 
   AppLogger.info('App started: ${AppConfig.appLabel} (isDev: ${AppConfig.isDev})');
 
@@ -115,24 +164,7 @@ class JumPediaApp extends StatelessWidget {
       title: AppConfig.appLabel,
       debugShowCheckedModeBanner: AppConfig.isDev,
       routerConfig: _router,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          brightness: Brightness.light,
-          primary: AppColors.primary,
-          secondary: AppColors.accent,
-          surface: AppColors.bgMid,
-          error: AppColors.danger,
-        ),
-        scaffoldBackgroundColor: AppColors.scaffold,
-        snackBarTheme: const SnackBarThemeData(
-          backgroundColor: AppColors.bgMid,
-          contentTextStyle: TextStyle(color: AppColors.textHi),
-          behavior: SnackBarBehavior.floating,
-        ),
-      ),
+      theme: AppTheme.light,
     );
   }
 }

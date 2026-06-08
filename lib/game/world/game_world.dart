@@ -13,6 +13,7 @@ import '../../providers/fun_fact_provider.dart';
 import '../../providers/hp_provider.dart';
 import '../../providers/score_provider.dart';
 import '../../services/audio_service.dart';
+import '../../services/haptic_service.dart';
 import '../components/collectible.dart';
 import '../components/obstacle.dart';
 import '../components/platform.dart' as game_platform;
@@ -29,6 +30,10 @@ import '../components/sky_background.dart';
 /// - Pantau HP dan trigger game over
 
 class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
+  /// Jarak horizontal aman (pixel) yang harus dijaga obstacle dari platform
+  /// & collectible, agar player yang mendarat tidak langsung tertabrak.
+  static const double _obstacleClearance = 24;
+
   /// Reference ke Riverpod container untuk akses providers.
   final WidgetRef ref;
 
@@ -203,42 +208,117 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   /// SPAWN PLATFORM
   /// ═══════════════════════════════════════
   void _spawnPlatform() {
+    // Platform tempat mendarat sebelumnya (gap obstacle berada di antara
+    // platform lama & yang baru ini).
+    final prevPlatformY = _topPlatformY;
+
     _topPlatformY -= AppConstants.platformSpacing +
         _rng.nextDouble() * 30; // Variasi jarak
 
-    final x = _rng.nextDouble() * (size.x - AppConstants.platformWidth - 20) + 10;
+    final platformWidth =
+        AppConstants.platformWidth + _rng.nextDouble() * 40; // 80-120 px
+    final x =
+        _rng.nextDouble() * (size.x - platformWidth - 20) + 10;
 
-    final platform = game_platform.Platform.random(
-      x: x,
-      y: _topPlatformY,
+    final platform = game_platform.Platform(
+      position: Vector2(x, _topPlatformY),
+      type: _randomPlatformType(),
+      width: platformWidth,
       screenWidth: size.x,
-      rng: _rng,
     );
 
     add(platform);
 
-    // Spawn collectible di atas platform (30% chance)
+    // Spawn collectible di atas platform (30% chance). Simpan posisinya agar
+    // obstacle tidak ditempatkan menimpa collectible.
+    double? collectibleX;
     if (_rng.nextDouble() < AppConstants.collectibleSpawnChance) {
-      _spawnCollectible(x + 25, _topPlatformY - 40);
+      collectibleX = x + platformWidth / 2 - Collectible.kSize / 2;
+      _spawnCollectible(collectibleX, _topPlatformY - 40);
     }
 
-    // Spawn obstacle di antara platform (15% chance)
+    // Spawn obstacle DI GAP antara platform baru & platform sebelumnya.
+    // Dipilih agar tidak menutupi kedua platform maupun collectible, sehingga
+    // selalu bisa dihindari dengan gerak kiri/kanan.
     if (_rng.nextDouble() < AppConstants.obstacleSpawnChance) {
-      final obstacleX = _rng.nextDouble() * (size.x - 40);
-      _spawnObstacle(obstacleX, _topPlatformY - 60);
+      final gapMidY = (prevPlatformY + _topPlatformY) / 2;
+      final obstacleX = _pickObstacleX(
+        platformLeft: x,
+        platformWidth: platformWidth,
+        collectibleX: collectibleX,
+      );
+      if (obstacleX != null) {
+        // gapMidY adalah titik tengah; _spawnObstacle ingin sudut atas.
+        _spawnObstacle(obstacleX, gapMidY - Obstacle.kSize / 2);
+      }
     }
+  }
+
+  /// Pilih tipe platform: 60% normal, 25% moving, 15% breakable.
+  game_platform.PlatformType _randomPlatformType() {
+    final roll = _rng.nextDouble();
+    if (roll < 0.60) return game_platform.PlatformType.normal;
+    if (roll < 0.85) return game_platform.PlatformType.moving;
+    return game_platform.PlatformType.breakable;
+  }
+
+  /// Cari koordinat X (sudut kiri obstacle) di dalam gap yang TIDAK menutupi
+  /// platform yang baru di-spawn maupun collectible di atasnya. Menjaga jarak
+  /// aman ([_obstacleClearance]) supaya player yang mendarat di platform tidak
+  /// langsung kena. Mengembalikan null jika tidak ada ruang yang aman.
+  double? _pickObstacleX({
+    required double platformLeft,
+    required double platformWidth,
+    double? collectibleX,
+  }) {
+    const obstacleSize = Obstacle.kSize;
+    const clearance = _obstacleClearance;
+    final maxX = size.x - obstacleSize;
+    if (maxX <= 0) return null;
+
+    // Zona terlarang: rentang X (untuk sudut kiri obstacle) yang akan membuat
+    // obstacle bertumpang tindih dengan platform / collectible + clearance.
+    final forbidden = <(double, double)>[];
+
+    // Platform (+ clearance di kedua sisi).
+    forbidden.add((
+      platformLeft - obstacleSize - clearance,
+      platformLeft + platformWidth + clearance,
+    ));
+
+    // Collectible (+ clearance).
+    if (collectibleX != null) {
+      forbidden.add((
+        collectibleX - obstacleSize - clearance,
+        collectibleX + Collectible.kSize + clearance,
+      ));
+    }
+
+    // Coba beberapa kandidat acak; pakai yang pertama di luar zona terlarang.
+    for (int attempt = 0; attempt < 12; attempt++) {
+      final candidate = _rng.nextDouble() * maxX;
+      final clashes = forbidden.any((zone) =>
+          candidate >= zone.$1 && candidate <= zone.$2);
+      if (!clashes) return candidate;
+    }
+    return null; // gap terlalu penuh — lewati obstacle kali ini
   }
 
   /// ═══════════════════════════════════════
   /// SPAWN COLLECTIBLE
   /// ═══════════════════════════════════════
-  void _spawnCollectible(double x, double y) {
+  /// [leftX]/[topY] adalah sudut kiri-atas; dikonversi ke titik tengah karena
+  /// Collectible memakai Anchor.center.
+  void _spawnCollectible(double leftX, double topY) {
     final type = _rng.nextDouble() < 0.7
         ? CollectibleType.book // 70% chance buku
         : CollectibleType.globe; // 30% chance globe
 
     final collectible = Collectible(
-      position: Vector2(x, y),
+      position: Vector2(
+        leftX + Collectible.kSize / 2,
+        topY + Collectible.kSize / 2,
+      ),
       type: type,
     );
 
@@ -248,8 +328,15 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   /// ═══════════════════════════════════════
   /// SPAWN OBSTACLE
   /// ═══════════════════════════════════════
-  void _spawnObstacle(double x, double y) {
-    final obstacle = Obstacle(position: Vector2(x, y));
+  /// [leftX]/[topY] adalah sudut kiri-atas; dikonversi ke titik tengah karena
+  /// Obstacle memakai Anchor.center.
+  void _spawnObstacle(double leftX, double topY) {
+    final obstacle = Obstacle(
+      position: Vector2(
+        leftX + Obstacle.kSize / 2,
+        topY + Obstacle.kSize / 2,
+      ),
+    );
     add(obstacle);
   }
 
@@ -318,6 +405,7 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   void _handleGameOver() {
     _isGameOver = true;
     AudioService.playDeath();
+    HapticService.death();
     AppLogger.game('💀 GAME OVER! Final score: ${ref.read(scoreProvider)}');
     onGameOver();
   }

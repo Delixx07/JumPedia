@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_dimens.dart';
+import '../../core/i18n/app_strings.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/ui_language_provider.dart';
+import '../widgets/app_card.dart';
+import '../widgets/state_views.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/score_service.dart';
 import '../../services/user_service.dart';
@@ -47,8 +52,7 @@ final _dashboardStatsProvider =
 });
 
 /// Stream provider untuk model user saat ini (real-time)
-final _currentUserModelProvider =
-    StreamProvider.autoDispose<UserModel?>((ref) {
+final _currentUserModelProvider = StreamProvider.autoDispose<UserModel?>((ref) {
   final uid = ref.watch(currentUserUidProvider);
   if (uid == null) return Stream.value(null);
   final userService = UserService();
@@ -64,6 +68,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(_dashboardStatsProvider);
+    final s = ref.watch(uiStringsProvider);
     final authState = ref.watch(authStateProvider);
     final isAnon = authState.when(
       data: (u) => u?.isAnonymous ?? false,
@@ -102,33 +107,37 @@ class HomeScreen extends ConsumerWidget {
 
                   // If the current user is anonymous, show a prompt to link account
                   if (isAnon) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.bgMid,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
+                    AppCard(
+                      padding: const EdgeInsets.all(AppDimens.md),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Your account is guest', style: TextStyle(color: AppColors.textHi, fontWeight: FontWeight.w700)),
+                          Text(s.guestAccountTitle,
+                              style: const TextStyle(
+                                  color: AppColors.textHi,
+                                  fontWeight: FontWeight.w700)),
                           const SizedBox(height: 6),
-                          const Text('Link to Google to keep your progress across devices.', style: TextStyle(color: AppColors.textLo)),
+                          Text(s.guestAccountDesc,
+                              style: const TextStyle(color: AppColors.textLo)),
                           const SizedBox(height: 8),
                           SdgButton(
-                            text: 'Link Now with Google',
+                            text: s.linkNowGoogle,
                             icon: Icons.link,
                             isLoading: isLinking,
                             onPressed: () async {
-                              ref.read(_isLinkingProvider.notifier).state = true;
+                              ref.read(_isLinkingProvider.notifier).state =
+                                  true;
                               try {
-                                final authService = ref.read(authServiceProvider);
-                                final result = await authService.linkGuestToGoogle();
+                                final authService =
+                                    ref.read(authServiceProvider);
+                                final result =
+                                    await authService.linkGuestToGoogle();
                                 if (result != null) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Account linked successfully!'), backgroundColor: AppColors.success),
+                                      SnackBar(
+                                          content: Text(s.accountLinked),
+                                          backgroundColor: AppColors.success),
                                     );
                                   }
                                 }
@@ -136,22 +145,31 @@ class HomeScreen extends ConsumerWidget {
                                 if (context.mounted) {
                                   if (e.code == 'credential-already-in-use') {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('This Google account is already used by another account.'), backgroundColor: AppColors.danger),
+                                      SnackBar(
+                                          content: Text(s.googleInUse),
+                                          backgroundColor: AppColors.danger),
                                     );
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error linking account: ${e.message}'), backgroundColor: AppColors.danger),
+                                      SnackBar(
+                                          content: Text(
+                                              'Error linking account: ${e.message}'),
+                                          backgroundColor: AppColors.danger),
                                     );
                                   }
                                 }
                               } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error linking account: $e'), backgroundColor: AppColors.danger),
+                                    SnackBar(
+                                        content:
+                                            Text('Error linking account: $e'),
+                                        backgroundColor: AppColors.danger),
                                   );
                                 }
                               } finally {
-                                ref.read(_isLinkingProvider.notifier).state = false;
+                                ref.read(_isLinkingProvider.notifier).state =
+                                    false;
                               }
                             },
                           ),
@@ -171,49 +189,30 @@ class HomeScreen extends ConsumerWidget {
                     cacheWidth: 480,
                   ),
 
-                  const SizedBox(height: 8),
-
-                  // "Jum" biru primary, "Pedia" kuning amber.
-                  const Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: 'Jum',
-                          style: TextStyle(color: AppColors.primary),
-                        ),
-                        TextSpan(
-                          text: 'Pedia',
-                          style: TextStyle(color: AppColors.accent),
-                        ),
-                      ],
+                  // Logo ditarik ke atas untuk menutup ruang kosong transparan
+                  // di bawah gambar mascot, agar tidak terlihat ada celah.
+                  Transform.translate(
+                    offset: const Offset(0, -48),
+                    child: Image.asset(
+                      'assets/images/logo_jumpedia.png',
+                      width: 300, // logo brand diukur dari LEBAR (bukan tinggi)
+                      fit: BoxFit.contain,
+                      cacheWidth: 1000,
                     ),
                   ),
 
-                  const SizedBox(height: 4),
-
-                  const Text(
-                    'Jump high, collect knowledge! 📚',
-                    style: TextStyle(
-                      color: AppColors.textLo,
-                      fontSize: 13,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
+                  // SizedBox negatif tak ada; kompensasi geser -48 logo agar
+                  // stats tidak terlalu jauh: jarak dikecilkan.
+                  const SizedBox(height: 0),
 
                   // ─── Stats Cards ──────────────────────
-                  _StatsRow(statsAsync: statsAsync),
+                  _StatsRow(statsAsync: statsAsync, s: s),
 
                   const SizedBox(height: 24),
 
                   // ─── Menu Buttons ─────────────────────
                   SdgButton(
-                    text: 'Start Playing',
+                    text: s.startPlaying,
                     icon: Icons.play_arrow_rounded,
                     onPressed: () => context.go('/game'),
                   ),
@@ -221,7 +220,7 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
 
                   SdgButton(
-                    text: 'Leaderboard',
+                    text: s.leaderboard,
                     icon: Icons.leaderboard_rounded,
                     style: SdgButtonStyle.secondary,
                     onPressed: () => context.go('/leaderboard'),
@@ -230,7 +229,7 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
 
                   SdgButton(
-                    text: 'Settings',
+                    text: s.settings,
                     icon: Icons.settings_rounded,
                     style: SdgButtonStyle.secondary,
                     onPressed: () => context.go('/settings'),
@@ -254,6 +253,7 @@ class _HeaderBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(_currentUserModelProvider);
+    final s = ref.watch(uiStringsProvider);
     return Row(
       children: [
         GestureDetector(
@@ -290,14 +290,19 @@ class _HeaderBar extends ConsumerWidget {
           child: userAsync.when(
             data: (user) {
               if (user == null) {
-                return const Column(
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Setting up profile...',
-                      style: TextStyle(color: AppColors.textHi, fontSize: 18, fontWeight: FontWeight.w700),
+                      s.settingUpProfile,
+                      style: const TextStyle(
+                          color: AppColors.textHi,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700),
                     ),
-                    Text('Just a moment...', style: TextStyle(color: AppColors.textLo, fontSize: 12)),
+                    Text(s.justAMoment,
+                        style: const TextStyle(
+                            color: AppColors.textLo, fontSize: 12)),
                   ],
                 );
               }
@@ -306,7 +311,7 @@ class _HeaderBar extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hello, $name',
+                    s.greeting(name),
                     style: const TextStyle(
                       color: AppColors.textHi,
                       fontSize: 18,
@@ -315,9 +320,9 @@ class _HeaderBar extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const Text(
-                    'Ready to jump higher today?',
-                    style: TextStyle(
+                  Text(
+                    s.homeSubtitle,
+                    style: const TextStyle(
                       color: AppColors.textLo,
                       fontSize: 12,
                     ),
@@ -331,15 +336,20 @@ class _HeaderBar extends ConsumerWidget {
                 SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: AppColors.primary),
                 ),
               ],
             ),
-            error: (_, __) => const Text('Hello, Player', style: TextStyle(color: AppColors.textHi, fontSize: 18, fontWeight: FontWeight.w700)),
+            error: (_, __) => Text(s.greeting(s.player),
+                style: const TextStyle(
+                    color: AppColors.textHi,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700)),
           ),
         ),
         IconButton(
-          tooltip: 'Logout',
+          tooltip: s.logout,
           icon: const Icon(Icons.logout_rounded, color: AppColors.textLo),
           onPressed: () async {
             final authService = ref.read(authServiceProvider);
@@ -355,7 +365,8 @@ class _HeaderBar extends ConsumerWidget {
 /// Baris yang menampilkan 2 kartu statistik: best score & total games.
 class _StatsRow extends StatelessWidget {
   final AsyncValue<_DashboardStats?> statsAsync;
-  const _StatsRow({required this.statsAsync});
+  final AppStrings s;
+  const _StatsRow({required this.statsAsync, required this.s});
 
   @override
   Widget build(BuildContext context) {
@@ -369,7 +380,7 @@ class _StatsRow extends StatelessWidget {
               child: _StatCard(
                 icon: Icons.emoji_events_rounded,
                 color: AppColors.warn,
-                label: 'Best Score',
+                label: s.bestScore,
                 value: best.toString(),
               ),
             ),
@@ -378,7 +389,7 @@ class _StatsRow extends StatelessWidget {
               child: _StatCard(
                 icon: Icons.sports_esports_rounded,
                 color: AppColors.accent,
-                label: 'Games Played',
+                label: s.gamesPlayed,
                 value: games.toString(),
               ),
             ),
@@ -386,22 +397,22 @@ class _StatsRow extends StatelessWidget {
         );
       },
       loading: () => const _StatsRowSkeleton(),
-      error: (_, __) => const Row(
+      error: (_, __) => Row(
         children: [
           Expanded(
             child: _StatCard(
               icon: Icons.emoji_events_rounded,
               color: AppColors.warn,
-              label: 'Best Score',
+              label: s.bestScore,
               value: '—',
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: _StatCard(
               icon: Icons.sports_esports_rounded,
               color: AppColors.accent,
-              label: 'Total Main',
+              label: s.gamesPlayed,
               value: '—',
             ),
           ),
@@ -416,29 +427,11 @@ class _StatsRowSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget skel() => Container(
-          height: 84,
-          decoration: BoxDecoration(
-            color: AppColors.bgMid,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: const Center(
-            child: SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-        );
-    return Row(
+    return const Row(
       children: [
-        Expanded(child: skel()),
-        const SizedBox(width: 12),
-        Expanded(child: skel()),
+        Expanded(child: SkeletonBox(height: 84)),
+        SizedBox(width: 12),
+        Expanded(child: SkeletonBox(height: 84)),
       ],
     );
   }
@@ -459,19 +452,9 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.bgMid,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.45), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.12),
-            blurRadius: 10,
-          ),
-        ],
-      ),
+      borderColor: color.withValues(alpha: 0.45),
       child: Row(
         children: [
           Container(

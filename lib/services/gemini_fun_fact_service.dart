@@ -105,7 +105,19 @@ class GeminiFunFactService {
   /// cadangan agar game tetap jalan.
   Future<FunFactModel> generateFact({
     required FactLanguage language,
+    Set<String> avoidContents = const {},
   }) async {
+    // Gabungkan fakta sesi ini + fakta yang sudah dikoleksi user (anti-duplikat
+    // lintas-sesi). Daftar dibatasi agar prompt tidak membengkak.
+    if (avoidContents.isNotEmpty) {
+      for (final c in avoidContents) {
+        if (!_recentFacts.contains(c)) _recentFacts.add(c);
+      }
+      while (_recentFacts.length > 8) {
+        _recentFacts.removeAt(0);
+      }
+    }
+
     // Pilih topik acak (hindari topik checkpoint sebelumnya).
     final topic = _pickTopic();
     _lastTopic = topic;
