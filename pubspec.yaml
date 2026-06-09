@@ -73,6 +73,20 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
 
+  # Generate app icon (launcher) dari satu file logo
+  flutter_launcher_icons: ^0.13.1
+
+# ─── Konfigurasi App Icon ───────────────
+# Generate dengan: flutter pub run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/logo_app.png"
+  # Latar di belakang logo (logo transparan → diberi warna agar penuh).
+  adaptive_icon_background: "#CDE9FF"
+  adaptive_icon_foreground: "assets/images/logo_app.png"
+  min_sdk_android: 21
+
 flutter:
   uses-material-design: true
 
