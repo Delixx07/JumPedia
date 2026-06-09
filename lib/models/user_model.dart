@@ -7,6 +7,7 @@ class UserModel {
   final String uid;
   final String username;
   final String avatarPath;
+  final String? photoUrl;
   final bool notificationsEnabled;
   final int totalGamesPlayed;
   final Timestamp createdAt;
@@ -15,6 +16,7 @@ class UserModel {
     required this.uid,
     required this.username,
     required this.avatarPath,
+    this.photoUrl,
     required this.notificationsEnabled,
     required this.totalGamesPlayed,
     required this.createdAt,
@@ -27,6 +29,7 @@ class UserModel {
       uid: data[FirestorePaths.fieldUid] as String? ?? doc.id,
       username: data[FirestorePaths.fieldUsername] as String? ?? 'Unknown',
       avatarPath: data[FirestorePaths.fieldAvatarPath] as String? ?? 'panda.png',
+      photoUrl: data[FirestorePaths.fieldPhotoUrl] as String?,
       notificationsEnabled: data[FirestorePaths.fieldNotificationsEnabled] as bool? ?? true,
       totalGamesPlayed: data[FirestorePaths.fieldTotalGamesPlayed] as int? ?? 0,
       createdAt: data[FirestorePaths.fieldCreatedAt] as Timestamp? ?? Timestamp.now(),
@@ -39,6 +42,7 @@ class UserModel {
       FirestorePaths.fieldUid: uid,
       FirestorePaths.fieldUsername: username,
       FirestorePaths.fieldAvatarPath: avatarPath,
+      FirestorePaths.fieldPhotoUrl: photoUrl,
       FirestorePaths.fieldNotificationsEnabled: notificationsEnabled,
       FirestorePaths.fieldTotalGamesPlayed: totalGamesPlayed,
       FirestorePaths.fieldCreatedAt: createdAt,
@@ -50,6 +54,7 @@ class UserModel {
     String? uid,
     String? username,
     String? avatarPath,
+    String? photoUrl,
     bool? notificationsEnabled,
     int? totalGamesPlayed,
     Timestamp? createdAt,
@@ -58,6 +63,7 @@ class UserModel {
       uid: uid ?? this.uid,
       username: username ?? this.username,
       avatarPath: avatarPath ?? this.avatarPath,
+      photoUrl: photoUrl ?? this.photoUrl,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       totalGamesPlayed: totalGamesPlayed ?? this.totalGamesPlayed,
       createdAt: createdAt ?? this.createdAt,

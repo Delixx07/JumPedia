@@ -297,6 +297,7 @@ class Player extends SpriteComponent
     // ─── Collectible Collision ───────────
     if (other is Collectible) {
       _setState(PlayerState.collecting, 0.4);
+      HapticService.collect();
       other.onCollect(game);
     }
 
@@ -304,6 +305,7 @@ class Player extends SpriteComponent
     if (other is Obstacle) {
       if (!hasShield) {
         _setState(PlayerState.hurt, 0.5);
+        HapticService.hit();
         other.onHitPlayer(game);
       } else {
         // Shield menyerap damage

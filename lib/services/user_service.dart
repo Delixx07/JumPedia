@@ -65,6 +65,23 @@ class UserService {
   }
 
   /// ═══════════════════════════════════════
+  /// UPDATE PHOTO URL
+  /// ═══════════════════════════════════════
+  /// // CRUD: UPDATE — Simpan URL foto profil kustom (dari Supabase Storage).
+  Future<void> updatePhotoUrl(String uid, String url) async {
+    // CRUD: UPDATE
+    await _firestore
+        .collection(FirestorePaths.usersCollection)
+        .doc(uid)
+        .update({
+      FirestorePaths.fieldPhotoUrl: url,
+    });
+
+    AppLogger.firestore('UPDATE', FirestorePaths.userDoc(uid),
+        detail: 'Photo URL updated');
+  }
+
+  /// ═══════════════════════════════════════
   /// UPDATE NOTIFICATION PREFERENCE
   /// ═══════════════════════════════════════
   /// // CRUD: UPDATE — Update field notifications_enabled di dokumen user.

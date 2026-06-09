@@ -62,6 +62,12 @@ dependencies:
   # Tipografi kustom (Poppins heading + Nunito body)
   google_fonts: ^6.2.1
 
+  # Supabase Storage — upload foto profil kustom
+  supabase_flutter: ^2.5.6
+
+  # Pilih gambar dari galeri / kamera untuk foto profil
+  image_picker: ^1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

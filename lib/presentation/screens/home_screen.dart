@@ -61,8 +61,6 @@ final _currentUserModelProvider = StreamProvider.autoDispose<UserModel?>((ref) {
 
 // State to indicate if a linking operation is in progress.
 final _isLinkingProvider = StateProvider<bool>((ref) => false);
-// State when deleting user's best score.
-final _isDeletingScoreProvider = StateProvider<bool>((ref) => false);
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -114,11 +112,6 @@ class HomeScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(s.guestAccountTitle,
-                              style: const TextStyle(
-                                  color: AppColors.textHi,
-                                  fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 6),
                           Text(s.guestAccountDesc,
                               style: const TextStyle(color: AppColors.textLo)),
                           const SizedBox(height: 8),
@@ -211,7 +204,6 @@ class HomeScreen extends ConsumerWidget {
                   _StatsRow(
                     statsAsync: statsAsync,
                     s: s,
-                    currentUid: ref.watch(currentUserUidProvider),
                   ),
 
                   const SizedBox(height: 24),
@@ -274,9 +266,13 @@ class _HeaderBar extends ConsumerWidget {
               child: CircleAvatar(
                 radius: 24,
                 backgroundColor: AppColors.bgMid,
-                backgroundImage: AssetImage(
-                  'assets/images/avatars/${user?.avatarPath ?? 'panda.png'}',
-                ),
+                // Foto kustom (Supabase) jika ada; jika tidak, avatar bawaan.
+                backgroundImage: (user?.photoUrl != null &&
+                        user!.photoUrl!.isNotEmpty)
+                    ? NetworkImage(user.photoUrl!)
+                    : AssetImage(
+                            'assets/images/avatars/${user?.avatarPath ?? 'panda.png'}')
+                        as ImageProvider,
               ),
             ),
             loading: () => const CircleAvatar(
@@ -372,17 +368,14 @@ class _HeaderBar extends ConsumerWidget {
 class _StatsRow extends ConsumerWidget {
   final AsyncValue<_DashboardStats?> statsAsync;
   final AppStrings s;
-  final String? currentUid;
 
   const _StatsRow({
     required this.statsAsync,
     required this.s,
-    this.currentUid,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDeleting = ref.watch(_isDeletingScoreProvider);
     return statsAsync.when(
       data: (stats) {
         final best = stats?.bestScore ?? 0;
@@ -395,74 +388,6 @@ class _StatsRow extends ConsumerWidget {
                 color: AppColors.warn,
                 label: s.bestScore,
                 value: best.toString(),
-                trailing: (currentUid != null && best > 0)
-                    ? SizedBox(
-                        height: 36,
-                        width: 36,
-                        child: isDeleting
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: AppColors.warn),
-                              )
-                            : IconButton(
-                                tooltip: 'Hapus skor tertinggi',
-                                padding: EdgeInsets.zero,
-                                icon: const Icon(Icons.delete_outline_rounded,
-                                    color: AppColors.warn),
-                                onPressed: () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      title:
-                                          const Text('Hapus skor tertinggi?'),
-                                      content: const Text(
-                                          'Skor ini akan dihapus dari leaderboard. Lanjutkan?'),
-                                      actions: [
-                                        TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(ctx).pop(false),
-                                            child: const Text('Batal')),
-                                        TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(ctx).pop(true),
-                                            child: const Text('Hapus')),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm != true) return;
-                                  try {
-                                    ref
-                                        .read(_isDeletingScoreProvider.notifier)
-                                        .state = true;
-                                    final scoreService = ScoreService();
-                                    await scoreService.deleteScore(currentUid!);
-                                    ref.invalidate(_dashboardStatsProvider);
-                                    await ref
-                                        .read(_dashboardStatsProvider.future);
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  'Skor tertinggi dihapus.')));
-                                    }
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  'Gagal menghapus skor.')));
-                                    }
-                                  } finally {
-                                    ref
-                                        .read(_isDeletingScoreProvider.notifier)
-                                        .state = false;
-                                  }
-                                },
-                              ),
-                      )
-                    : null,
               ),
             ),
             const SizedBox(width: 12),
@@ -523,70 +448,65 @@ class _StatCard extends StatelessWidget {
   final Color color;
   final String label;
   final String value;
-  final Widget? trailing;
 
   const _StatCard({
     required this.icon,
     required this.color,
     required this.label,
     required this.value,
-    this.trailing,
   });
 
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       borderColor: color.withValues(alpha: 0.45),
-      child: Stack(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textLo,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      value,
-                      style: const TextStyle(
-                        color: AppColors.textHi,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          // Tombol aksi (mis. hapus skor) melayang di pojok kanan-atas
-          // agar tidak menghimpit label & angka.
-          if (trailing != null)
-            Positioned(top: -6, right: -6, child: trailing!),
+          const SizedBox(width: 8),
+          // Label + value. Expanded agar mengisi sisa ruang; ikon hapus
+          // (trailing) berada SETELAH ini, bukan menumpuk di atasnya.
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textLo,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: AppColors.textHi,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

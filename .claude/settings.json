@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//tmp/claude/c--Kuliah-SEM-6-PBB-final-project/1b766808-996d-4773-8cc1-befb33afe13f/tasks/**)",
+      "Bash(f=\"/tmp/claude/c--Kuliah-SEM-6-PBB-final-project/1b766808-996d-4773-8cc1-befb33afe13f/tasks/b3b34woal.output\"; grep -E \"Built|Error launching|BUILD FAILED|No supported devices\" \"$f\" | tail -4)",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb devices)",
+      "Bash(f=\"/tmp/claude/c--Kuliah-SEM-6-PBB-final-project/1b766808-996d-4773-8cc1-befb33afe13f/tasks/becfz29ae.output\"; grep -E \"Built|Syncing files|Error launching|BUILD FAILED\" \"$f\" | tail -4)",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb -s d3462940 shell monkey -p com.example.sdg_eco_jump -c android.intent.category.LAUNCHER 1 2>&1 | Select-Object -Last 2)",
+      "Bash(f=\"/tmp/claude/c--Kuliah-SEM-6-PBB-final-project/1b766808-996d-4773-8cc1-befb33afe13f/tasks/b5yalopoo.output\"; grep -E \"Built|Error launching|BUILD FAILED|No supported\" \"$f\" | tail -3)",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb devices; flutter run -t lib/main_dev.dart -d d3462940)",
+      "Bash(f=\"/tmp/claude/c--Kuliah-SEM-6-PBB-final-project/1b766808-996d-4773-8cc1-befb33afe13f/tasks/bs9ts2q3p.output\"; grep -E \"Built|Error launching|BUILD FAILED|No supported\" \"$f\" | tail -3)"
+    ]
+  }
+}

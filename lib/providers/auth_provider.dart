@@ -33,3 +33,11 @@ final isLoggedInProvider = Provider<bool>((ref) {
   final authState = ref.watch(authStateProvider);
   return authState.whenData((user) => user != null).value ?? false;
 });
+
+/// Apakah user yang login adalah TAMU (anonymous). Dipakai untuk mencegah
+/// skor tamu masuk leaderboard & menyembunyikan fitur khusus akun.
+final isGuestProvider = Provider<bool>((ref) {
+  final authState = ref.watch(authStateProvider);
+  return authState.whenData((user) => user?.isAnonymous ?? false).value ??
+      false;
+});

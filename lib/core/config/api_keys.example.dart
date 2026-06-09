@@ -11,4 +11,14 @@ class ApiKeys {
 
   /// Tempel kunci Gemini kamu di sini untuk run lokal.
   static const String geminiApiKeyFallback = 'PASTE_YOUR_GEMINI_KEY_HERE';
+
+  // ─── Supabase (Storage foto profil) ─────
+  /// Dari Supabase → Settings → API.
+  static const String supabaseUrl = 'PASTE_SUPABASE_URL_HERE';
+  static const String supabaseAnonKey = 'PASTE_SUPABASE_ANON_KEY_HERE';
+
+  static bool get hasSupabase =>
+      supabaseUrl.startsWith('http') &&
+      supabaseAnonKey.isNotEmpty &&
+      supabaseAnonKey != 'PASTE_SUPABASE_ANON_KEY_HERE';
 }

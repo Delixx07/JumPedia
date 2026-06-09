@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../core/config/api_keys.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/i18n/app_strings.dart';
 import '../../models/achievement_model.dart';
@@ -11,6 +15,8 @@ import '../../providers/achievement_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/ui_language_provider.dart';
 import '../widgets/state_views.dart';
+import '../../services/profile_photo_service.dart';
+import '../../services/score_service.dart';
 import '../../services/user_service.dart';
 import '../widgets/sdg_button.dart';
 
@@ -26,6 +32,13 @@ final _userProfileProvider = StreamProvider.autoDispose<UserModel?>((ref) {
   return UserService().streamUser(uid);
 });
 
+/// Skor terbaik user untuk ditampilkan di Profile (bisa di-reset di sini).
+final _bestScoreProvider = FutureProvider.autoDispose<int>((ref) async {
+  final uid = ref.watch(currentUserUidProvider);
+  if (uid == null) return 0;
+  return ScoreService().getUserBestScore(uid);
+});
+
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -36,6 +49,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _usernameController = TextEditingController();
   bool _isSaving = false;
+  bool _isUploadingPhoto = false;
+  bool _isResettingScore = false;
   String? _selectedAvatar;
 
   final List<String> _availableAvatars = [
@@ -194,11 +209,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           child: CircleAvatar(
                             radius: 60,
                             backgroundColor: AppColors.bgMid,
-                            backgroundImage: AssetImage('assets/images/avatars/$currentAvatar'),
+                            // Foto kustom (Supabase) jika ada; jika tidak,
+                            // pakai avatar bawaan dari assets.
+                            backgroundImage: (user.photoUrl != null &&
+                                    user.photoUrl!.isNotEmpty)
+                                ? NetworkImage(user.photoUrl!)
+                                : AssetImage(
+                                        'assets/images/avatars/$currentAvatar')
+                                    as ImageProvider,
                           ),
                         ),
+                        if (_isUploadingPhoto)
+                          const Positioned.fill(
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.primary),
+                            ),
+                          ),
                         GestureDetector(
-                          onTap: () => _showAvatarPicker(context, s.chooseAvatar),
+                          onTap: _isUploadingPhoto
+                              ? null
+                              : () => _showPhotoOptions(context, s, user.uid),
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
@@ -227,22 +258,47 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     
                     const SizedBox(height: 12),
 
-                    // Username (Editable)
-                    TextField(
-                      controller: _usernameController,
-                      style: const TextStyle(color: AppColors.textHi),
-                      decoration: InputDecoration(
-                        labelText: s.username,
-                        labelStyle: const TextStyle(color: AppColors.primary),
-                        hintText: s.enterUsername,
-                        hintStyle: const TextStyle(color: AppColors.textLo),
-                        prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
-                        filled: true,
-                        fillColor: AppColors.bgMid,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
+                    // Username (Editable) — label kecil di dalam kartu agar
+                    // konsisten dengan kartu Email (bukan floating label).
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgMid,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person_outline,
+                              color: AppColors.primary, size: 20),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(s.username,
+                                    style: const TextStyle(
+                                        color: AppColors.textLo, fontSize: 11)),
+                                TextField(
+                                  controller: _usernameController,
+                                  style: const TextStyle(
+                                      color: AppColors.textHi,
+                                      fontWeight: FontWeight.w600),
+                                  cursorColor: AppColors.primary,
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    border: InputBorder.none,
+                                    hintText: s.enterUsername,
+                                    hintStyle:
+                                        const TextStyle(color: AppColors.textLo),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
@@ -258,23 +314,76 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: Row(
+                      child: Column(
                         children: [
-                          const Icon(Icons.sports_esports, color: AppColors.accent),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              s.totalGamesPlayed,
-                              style: const TextStyle(color: AppColors.textLo),
-                            ),
+                          Row(
+                            children: [
+                              const Icon(Icons.sports_esports,
+                                  color: AppColors.accent),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  s.totalGamesPlayed,
+                                  style:
+                                      const TextStyle(color: AppColors.textLo),
+                                ),
+                              ),
+                              Text(
+                                '${user.totalGamesPlayed}',
+                                style: const TextStyle(
+                                  color: AppColors.textHi,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            '${user.totalGamesPlayed}',
-                            style: const TextStyle(
-                              color: AppColors.textHi,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          const Divider(height: 24, color: AppColors.border),
+                          // ─── Best Score + tombol reset ──
+                          Row(
+                            children: [
+                              const Icon(Icons.emoji_events_rounded,
+                                  color: AppColors.warn),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  s.bestScoreLabel,
+                                  style:
+                                      const TextStyle(color: AppColors.textLo),
+                                ),
+                              ),
+                              Consumer(builder: (context, ref, _) {
+                                final best = ref.watch(_bestScoreProvider);
+                                return Text(
+                                  best.maybeWhen(
+                                      data: (v) => '$v', orElse: () => '—'),
+                                  style: const TextStyle(
+                                    color: AppColors.textHi,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                );
+                              }),
+                              const SizedBox(width: 8),
+                              _isResettingScore
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppColors.danger),
+                                    )
+                                  : IconButton(
+                                      tooltip: s.resetBestScore,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          color: AppColors.danger),
+                                      onPressed: () =>
+                                          _resetBestScore(user.uid, s),
+                                    ),
+                            ],
                           ),
                         ],
                       ),
@@ -379,6 +488,129 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  /// Reset (hapus) skor terbaik user dari leaderboard, dengan konfirmasi.
+  Future<void> _resetBestScore(String uid, AppStrings s) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(s.resetBestScore),
+        content: Text(s.resetBestScoreDesc),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(s.cancel)),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(s.reset,
+                  style: const TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _isResettingScore = true);
+    try {
+      await ScoreService().deleteScore(uid);
+      ref.invalidate(_bestScoreProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(s.bestScoreReset),
+              backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('${s.error}: $e'),
+              backgroundColor: AppColors.danger),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isResettingScore = false);
+    }
+  }
+
+  /// Pilihan ganti foto profil: unggah foto sendiri (Supabase Storage) atau
+  /// pilih avatar bawaan.
+  void _showPhotoOptions(BuildContext context, AppStrings s, String uid) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.bgMid,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            if (ApiKeys.hasSupabase)
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded,
+                    color: AppColors.primary),
+                title: Text(s.uploadPhoto),
+                subtitle: Text(s.uploadPhotoDesc),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadPhoto(uid);
+                },
+              ),
+            ListTile(
+              leading:
+                  const Icon(Icons.face_rounded, color: AppColors.primary),
+              title: Text(s.chooseAvatar),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showAvatarPicker(context, s.chooseAvatar);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Ambil foto dari galeri → unggah ke Supabase Storage → simpan URL ke user.
+  Future<void> _pickAndUploadPhoto(String uid) async {
+    final s = ref.read(uiStringsProvider);
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+      if (picked == null) return; // user batal
+
+      setState(() => _isUploadingPhoto = true);
+
+      final url =
+          await ProfilePhotoService().uploadAvatar(uid, File(picked.path));
+      await UserService().updatePhotoUrl(uid, url);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(s.photoUpdated),
+              backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('${s.error}: $e'),
+              backgroundColor: AppColors.danger),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
   }
 
   void _showAvatarPicker(BuildContext context, String title) {

@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-
+import 'core/config/api_keys.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/logger.dart';
 import 'firebase_options.dart';
@@ -113,6 +114,20 @@ Future<void> mainCommon() async {
 
   // Setup logger
   AppLogger.init(enabled: AppConfig.isDev);
+
+  // Inisialisasi Supabase (untuk Storage foto profil). Hanya jika kredensial
+  // sudah diisi di api_keys.dart — agar app tetap jalan tanpa Supabase.
+  if (ApiKeys.hasSupabase) {
+    try {
+      await Supabase.initialize(
+        url: ApiKeys.supabaseUrl,
+        anonKey: ApiKeys.supabaseAnonKey,
+      );
+      AppLogger.info('Supabase initialized');
+    } catch (e) {
+      AppLogger.warning('Supabase init gagal: $e', tag: 'Supabase');
+    }
+  }
 
   // Setup notifications
   final notificationService = NotificationService();

@@ -135,73 +135,27 @@ class AppStrings implements AchievementStrings {
 
   /// Judul section daftar target SDG 4.
   String get sdg4TargetsTitle =>
-      _t('SDG 4 Targets', 'Target-Target SDG 4');
+      _t('SDG 4 Targets We Support', 'Target SDG 4 yang Kami Dukung');
 
-  /// 8 target SDG 4 (kode, judul, deskripsi) — dwibahasa.
+  /// Target SDG 4 yang relevan dengan JumPedia (kode, judul, deskripsi).
+  /// Hanya target yang benar-benar didukung game ini — bukan seluruh 8 target.
+  /// Deskripsi mengaitkan target dengan cara kerja game.
   List<(String, String, String)> get sdg4Targets => [
         (
           '4.1',
-          _t('Free Primary & Secondary Education',
-              'Pendidikan Dasar & Menengah Gratis'),
+          _t('Quality Primary Education',
+              'Pendidikan Dasar Berkualitas'),
           _t(
-              'By 2030, ensure all girls and boys complete free, equitable, and quality primary and secondary education.',
-              'Pada 2030, pastikan semua anak menuntaskan pendidikan dasar dan menengah yang gratis, setara, dan berkualitas.'),
-        ),
-        (
-          '4.2',
-          _t('Equal Access to Pre-Primary Education',
-              'Akses Setara PAUD'),
-          _t(
-              'By 2030, ensure all children have access to quality early childhood development, care, and pre-primary education.',
-              'Pada 2030, pastikan semua anak memperoleh pengembangan, perawatan, dan pendidikan anak usia dini yang berkualitas.'),
-        ),
-        (
-          '4.3',
-          _t('Affordable Technical & Higher Education',
-              'Pendidikan Tinggi & Vokasi Terjangkau'),
-          _t(
-              'By 2030, ensure equal access for all to affordable and quality technical, vocational, and tertiary education.',
-              'Pada 2030, pastikan akses setara ke pendidikan teknik, vokasi, dan tinggi yang terjangkau dan berkualitas.'),
-        ),
-        (
-          '4.4',
-          _t('Relevant Skills for Decent Work',
-              'Keterampilan untuk Kerja Layak'),
-          _t(
-              'By 2030, substantially increase the number of people with relevant technical and vocational skills for employment.',
-              'Pada 2030, tingkatkan jumlah orang dengan keterampilan teknik dan vokasi yang relevan untuk pekerjaan.'),
-        ),
-        (
-          '4.5',
-          _t('Eliminate Discrimination in Education',
-              'Hapus Diskriminasi dalam Pendidikan'),
-          _t(
-              'By 2030, eliminate gender disparities and ensure equal access to education for the vulnerable.',
-              'Pada 2030, hapus kesenjangan gender dan pastikan akses setara ke pendidikan bagi kelompok rentan.'),
-        ),
-        (
-          '4.6',
-          _t('Universal Literacy & Numeracy',
-              'Literasi & Numerasi Universal'),
-          _t(
-              'By 2030, ensure all youth and most adults achieve literacy and numeracy.',
-              'Pada 2030, pastikan semua remaja dan sebagian besar dewasa menguasai literasi dan numerasi.'),
+              'Supporting effective and relevant learning outcomes. JumPedia delivers fun, accurate science facts at an elementary level — learning while playing.',
+              'Mendukung hasil belajar yang efektif dan relevan. JumPedia menyajikan fakta sains yang seru dan akurat untuk tingkat SD — belajar sambil bermain.'),
         ),
         (
           '4.7',
-          _t('Education for Sustainable Development',
-              'Pendidikan untuk Pembangunan Berkelanjutan'),
+          _t('Knowledge for Lifelong Learning',
+              'Pengetahuan untuk Belajar Sepanjang Hayat'),
           _t(
-              'By 2030, ensure all learners gain knowledge and skills to promote sustainable development and global citizenship.',
-              'Pada 2030, pastikan semua pelajar memperoleh pengetahuan untuk mendorong pembangunan berkelanjutan dan kewargaan global.'),
-        ),
-        (
-          '4.8',
-          _t('Inclusive & Safe Schools',
-              'Sekolah yang Inklusif & Aman'),
-          _t(
-              'Build and upgrade education facilities that are child, disability, and gender sensitive and provide safe learning environments.',
-              'Bangun dan tingkatkan fasilitas pendidikan yang ramah anak, disabilitas, dan gender serta aman untuk belajar.'),
+              'Building knowledge and curiosity. By collecting facts and avoiding the "lazy-thinking AI", players are encouraged to keep learning and think for themselves.',
+              'Membangun pengetahuan dan rasa ingin tahu. Dengan mengumpulkan fakta dan menghindari "AI yang membuat malas berpikir", pemain didorong untuk terus belajar dan berpikir mandiri.'),
         ),
       ];
   String get creditsTitle => _t('Credits', 'Kredit');
@@ -232,6 +186,13 @@ class AppStrings implements AchievementStrings {
   String get enterUsername => _t('Enter your username', 'Masukkan nama pengguna');
   String get gameStatistics => _t('Game Statistics', 'Statistik Permainan');
   String get totalGamesPlayed => _t('Total Games Played', 'Total Game Dimainkan');
+  String get bestScoreLabel => _t('Best Score', 'Skor Terbaik');
+  String get resetBestScore => _t('Reset Best Score?', 'Atur Ulang Skor Terbaik?');
+  String get resetBestScoreDesc => _t(
+      'Your best score will be removed from the leaderboard. Continue?',
+      'Skor terbaikmu akan dihapus dari papan skor. Lanjutkan?');
+  String get bestScoreReset =>
+      _t('Best score reset.', 'Skor terbaik diatur ulang.');
   String get preferences => _t('Preferences', 'Preferensi');
   String get eduNotifications =>
       _t('Educational Notifications', 'Notifikasi Edukasi');
@@ -239,6 +200,11 @@ class AppStrings implements AchievementStrings {
       _t('Receive daily SDG 4 fun facts', 'Terima fakta SDG 4 harian');
   String get saveChanges => _t('Save Changes', 'Simpan Perubahan');
   String get chooseAvatar => _t('Choose Your Avatar', 'Pilih Avatar Kamu');
+  String get uploadPhoto => _t('Upload Photo', 'Unggah Foto');
+  String get uploadPhotoDesc =>
+      _t('Use your own picture', 'Pakai foto sendiri');
+  String get photoUpdated =>
+      _t('Profile photo updated!', 'Foto profil diperbarui!');
   String get profileUpdated =>
       _t('Profile updated successfully!', 'Profil berhasil diperbarui!');
 

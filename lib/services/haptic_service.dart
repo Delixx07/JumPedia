@@ -17,16 +17,32 @@ class HapticService {
 
   static bool get isEnabled => _enabled;
 
-  /// Getaran ringan saat player melompat.
+  /// Getaran saat player melompat (medium agar lebih terasa dari sebelumnya).
   static void jump() {
     if (!_enabled) return;
-    _safe(HapticFeedback.lightImpact);
+    _safe(HapticFeedback.mediumImpact);
   }
 
-  /// Getaran berat saat player mati / game over.
+  /// Getaran ringan saat mengambil collectible (buku/globe).
+  static void collect() {
+    if (!_enabled) return;
+    _safe(HapticFeedback.selectionClick);
+  }
+
+  /// Getaran saat terkena obstacle (kehilangan HP).
+  static void hit() {
+    if (!_enabled) return;
+    _safe(HapticFeedback.mediumImpact);
+  }
+
+  /// Getaran berat + pola ganda saat player mati / game over.
   static void death() {
     if (!_enabled) return;
     _safe(HapticFeedback.heavyImpact);
+    // Dentuman kedua sesaat kemudian agar "mati" terasa lebih kuat.
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (_enabled) _safe(HapticFeedback.heavyImpact);
+    });
   }
 
   static void _safe(Future<void> Function() action) {

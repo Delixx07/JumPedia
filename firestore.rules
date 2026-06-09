@@ -6,6 +6,7 @@ rules_version = '2';
 // Skema:
 //   users/{uid}                              → profil + statistik
 //   users/{uid}/collected_facts/{factId}     → fun fact yang dikoleksi user
+//   users/{uid}/achievements/{id}            → lencana yang dibuka user
 //   leaderboard/{userId}                      → skor tertinggi per user
 //
 // Prinsip:
@@ -28,6 +29,14 @@ service cloud.firestore {
       // Fakta yang dikumpulkan tiap user. Hanya pemilik (uid) yang boleh
       // membuat, membaca, mengubah (favorit), dan menghapus.
       match /collected_facts/{factId} {
+        allow read, create, update, delete: if request.auth != null
+                                            && request.auth.uid == uid;
+      }
+
+      // ─── SUBCOLLECTION: achievements ─────
+      // Lencana yang dibuka pemain. Hanya pemilik (uid) yang boleh
+      // membaca & menulis status unlock-nya.
+      match /achievements/{achievementId} {
         allow read, create, update, delete: if request.auth != null
                                             && request.auth.uid == uid;
       }
