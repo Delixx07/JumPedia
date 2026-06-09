@@ -164,7 +164,14 @@ class AppStrings implements AchievementStrings {
       'Dibuat dengan Flutter & Flame 🎮');
 
   // ─── Leaderboard ──────────────────────
-  String get noScoresYet => _t('No scores yet', 'Belum ada skor');
+    String get noScoresYet => _t('No scores yet', 'Belum ada skor');
+    String get scoreHistory => _t('Score History', 'Riwayat Skor');
+    String get noScoreHistory => _t('No score history', 'Belum ada riwayat skor');
+    String get deleteScoreConfirm => _t('Delete this score?', 'Hapus skor ini?');
+    String get deleteAllScoresConfirm =>
+            _t('Delete all score history?', 'Hapus semua riwayat skor?');
+    String get scoreDeleted => _t('Score deleted', 'Skor dihapus');
+    String get allScoresDeleted => _t('All score history deleted', 'Semua riwayat skor dihapus');
 
   // ─── Profile ──────────────────────────
   String get myProfile => _t('My Profile', 'Profil Saya');

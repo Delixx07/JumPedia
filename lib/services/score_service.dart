@@ -3,6 +3,7 @@
 import '../core/constants/firestore_paths.dart';
 import '../core/utils/logger.dart';
 import '../models/leaderboard_model.dart';
+import '../models/score_history_model.dart';
 
 /// ═══════════════════════════════════════
 /// SCORE SERVICE — JumPedia
@@ -43,6 +44,79 @@ class ScoreService {
           detail: 'New high score $score saved for user $userId');
     } else {
       AppLogger.game('Score $score is not better than $currentBest. No update.');
+    }
+
+    // Selain update leaderboard, selalu simpan entri riwayat skor di
+    // subcollection users/{uid}/score_history sehingga kita punya log lengkap
+    // dari setiap sesi (timestamp + score).
+    try {
+      await _firestore
+          .collection(FirestorePaths.scoreHistoryPath(userId))
+          .add({
+        FirestorePaths.fieldScore: score,
+        FirestorePaths.fieldTimestamp: FieldValue.serverTimestamp(),
+      });
+
+      AppLogger.firestore('CREATE', FirestorePaths.scoreHistoryPath(userId),
+          detail: 'Recorded score $score for user $userId');
+    } catch (e) {
+      AppLogger.firestore('ERROR', FirestorePaths.scoreHistoryPath(userId),
+          detail: 'Failed to record score history: $e');
+    }
+  }
+
+    /// GET USER SCORE HISTORY
+    /// // CRUD: READ — Baca riwayat skor milik user tertentu.
+    /// Menggunakan query default tanpa ordering agar tidak memerlukan index.
+    Future<List<ScoreHistoryModel>> getUserScoreHistory(String userId,
+      {int limit = 50}) async {
+      final querySnapshot = await _firestore
+        .collection(FirestorePaths.scoreHistoryPath(userId))
+        .limit(limit)
+        .get();
+
+    AppLogger.firestore('READ', FirestorePaths.scoreHistoryPath(userId),
+      detail: 'Fetched $limit score history items for $userId (no ordering)');
+
+    return querySnapshot.docs
+      .map((d) => ScoreHistoryModel.fromFirestore(d))
+      .toList();
+    }
+
+  /// DELETE A SINGLE SCORE HISTORY ITEM
+  Future<void> deleteScoreHistoryItem(String userId, String historyId) async {
+    try {
+      await _firestore
+          .collection(FirestorePaths.scoreHistoryPath(userId))
+          .doc(historyId)
+          .delete();
+      AppLogger.firestore('DELETE',
+          '${FirestorePaths.scoreHistoryPath(userId)}/$historyId',
+          detail: 'Deleted score history $historyId for user $userId');
+    } catch (e) {
+      AppLogger.firestore('ERROR', FirestorePaths.scoreHistoryPath(userId),
+          detail: 'Failed to delete score history $historyId: $e');
+      rethrow;
+    }
+  }
+
+  /// DELETE ALL SCORE HISTORY for a user (batch delete)
+  Future<void> deleteAllScoreHistory(String userId) async {
+    final col = _firestore.collection(FirestorePaths.scoreHistoryPath(userId));
+    try {
+      final snapshot = await col.get();
+      if (snapshot.docs.isEmpty) return;
+      final batch = _firestore.batch();
+      for (final d in snapshot.docs) {
+        batch.delete(d.reference);
+      }
+      await batch.commit();
+      AppLogger.firestore('DELETE', FirestorePaths.scoreHistoryPath(userId),
+          detail: 'Deleted all score history for user $userId');
+    } catch (e) {
+      AppLogger.firestore('ERROR', FirestorePaths.scoreHistoryPath(userId),
+          detail: 'Failed to delete all score history: $e');
+      rethrow;
     }
   }
 

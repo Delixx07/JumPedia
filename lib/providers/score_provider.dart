@@ -1,5 +1,20 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/score_service.dart';
+import '../models/score_history_model.dart';
+
+/// Provider singleton untuk ScoreService
+final scoreServiceProvider = Provider<ScoreService>((ref) {
+  return ScoreService();
+});
+
+/// Provider untuk mengambil riwayat skor user tertentu.
+final userScoreHistoryProvider =
+    FutureProvider.autoDispose.family<List<ScoreHistoryModel>, String>((ref, uid) {
+  final svc = ref.watch(scoreServiceProvider);
+  return svc.getUserScoreHistory(uid);
+});
+
 /// ═══════════════════════════════════════
 /// SCORE PROVIDER — JumPedia
 /// ═══════════════════════════════════════

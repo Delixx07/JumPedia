@@ -21,6 +21,7 @@ import 'presentation/screens/settings_screen.dart';
 import 'presentation/screens/about_screen.dart';
 import 'presentation/screens/fun_facts_screen.dart';
 import 'presentation/screens/profile_screen.dart';
+import 'presentation/screens/score_history_screen.dart';
 import 'presentation/screens/main_shell.dart';
 import 'services/audio_service.dart';
 import 'services/haptic_service.dart';
@@ -59,6 +60,7 @@ final GoRouter _router = GoRouter(
     GoRoute(
         path: '/profile',
         pageBuilder: (_, s) => _fadePage(s, const ProfileScreen())),
+    GoRoute(path: '/score-history', builder: (_, __) => const ScoreHistoryScreen()),
 
     // Shell dengan NavigationBar — Home / Fun Facts / Leaderboard.
     ShellRoute(

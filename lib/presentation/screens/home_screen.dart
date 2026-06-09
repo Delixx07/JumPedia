@@ -234,6 +234,15 @@ class HomeScreen extends ConsumerWidget {
                     onPressed: () => context.go('/settings'),
                   ),
 
+                  const SizedBox(height: 12),
+
+                  SdgButton(
+                    text: s.scoreHistory,
+                    icon: Icons.history_rounded,
+                    style: SdgButtonStyle.secondary,
+                    onPressed: () => context.go('/score-history'),
+                  ),
+
                   const SizedBox(height: 16),
                 ],
               ),
