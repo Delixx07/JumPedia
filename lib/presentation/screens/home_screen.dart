@@ -12,6 +12,7 @@ import '../widgets/state_views.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/score_service.dart';
 import '../../services/user_service.dart';
+import '../../services/audio_service.dart';
 import '../../models/user_model.dart';
 import '../widgets/sdg_button.dart';
 
@@ -355,6 +356,8 @@ class _HeaderBar extends ConsumerWidget {
           icon: const Icon(Icons.logout_rounded, color: AppColors.textLo),
           onPressed: () async {
             final authService = ref.read(authServiceProvider);
+            // Stop background music immediately on logout.
+            await AudioService.stopBgm();
             await authService.signOut();
             if (context.mounted) context.go('/login');
           },

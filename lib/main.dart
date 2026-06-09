@@ -147,7 +147,7 @@ Future<void> mainCommon() async {
   AudioService.setSfxVolume(prefs.getDouble('audio_sfx_volume') ?? 0.8);
   AudioService.setMuted(prefs.getBool('audio_muted') ?? false);
   HapticService.setEnabled(prefs.getBool('haptic_enabled') ?? true);
-  AudioService.startBgm();
+
 
   AppLogger.info('App started: ${AppConfig.appLabel} (isDev: ${AppConfig.isDev})');
 

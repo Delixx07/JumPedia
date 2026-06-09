@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../providers/ui_language_provider.dart';
+import '../../services/audio_service.dart';
 
 /// ═══════════════════════════════════════
 /// MAIN SHELL — JumPedia NavigationBar
@@ -12,21 +13,34 @@ import '../../providers/ui_language_provider.dart';
 /// Tab di-handle via go_router ShellRoute, jadi state masing-masing
 /// tab tetap independent saat berpindah.
 
-class MainShell extends ConsumerWidget {
+class MainShell extends ConsumerStatefulWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
-  static const _paths = ['/home', '/fun-facts', '/leaderboard'];
+  @override
+  ConsumerState<MainShell> createState() => _MainShellState();
 
+  static const _paths = ['/home', '/fun-facts', '/leaderboard'];
+}
+
+class _MainShellState extends ConsumerState<MainShell> {
   int _indexFor(String location) {
-    for (var i = 0; i < _paths.length; i++) {
-      if (location.startsWith(_paths[i])) return i;
+    for (var i = 0; i < MainShell._paths.length; i++) {
+      if (location.startsWith(MainShell._paths[i])) return i;
     }
     return 0;
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    // Start BGM when the main shell is created (i.e., after login/navigation
+    // to shell routes). This avoids playing music on the login screen.
+    AudioService.startBgm();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final s = ref.watch(uiStringsProvider);
     final location = GoRouterState.of(context).uri.toString();
     final currentIndex = _indexFor(location);
@@ -54,7 +68,7 @@ class MainShell extends ConsumerWidget {
 
     return Scaffold(
       extendBody: true,
-      body: child,
+      body: widget.child,
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
           backgroundColor: AppColors.bgMid,
