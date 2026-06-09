@@ -20,11 +20,25 @@ final topScoresProvider = FutureProvider<List<LeaderboardModel>>((ref) async {
   return scoreService.getTopScores(limit: 10);
 });
 
-class LeaderboardScreen extends ConsumerWidget {
+class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LeaderboardScreen> createState() => _LeaderboardScreenState();
+}
+
+class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Force refresh when the screen is first displayed
+      ref.invalidate(topScoresProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scoresAsync = ref.watch(topScoresProvider);
     final s = ref.watch(uiStringsProvider);
 
