@@ -2,15 +2,15 @@
 
 > A 2D vertical platformer mobile game with an educational twist — built around UN Sustainable Development Goal 4 (Quality Education).
 
-Jump from platform to platform, collect knowledge, and unlock fun facts about education along the way.
+Jump from platform to platform, collect knowledge, and unlock AI-generated science fun facts along the way.
 
 ---
 
 ## What is JumPedia?
 
-JumPedia is a Flutter-based mobile game that blends **arcade-style platforming** with **educational micro-content**. The character is a friendly 3D mascot wearing a graduation cap bounces upward across procedurally placed platforms while the player collects books and avoids obstacles. Every **100 points** the player earns, the game pauses to reveal an SDG 4 fun fact, which is then saved to the player's personal collection in the cloud.
+JumPedia is a Flutter-based mobile game that blends **arcade-style platforming** with **educational micro-content**. A friendly 3D mascot (Lumi) wearing a graduation cap bounces upward across procedurally placed platforms while the player collects books and dodges a "lazy-thinking AI" robot. Every **300 points**, the game pauses to reveal a science fun fact — **generated in real time by Google Gemini AI** — which is then saved to the player's personal collection in the cloud.
 
-The result is a casual game loop where progression is measured **not just in score, but in knowledge collected**.
+The result is a casual game loop where progression is measured **not just in score, but in knowledge collected**. The "lazy-thinking AI" obstacle reinforces the theme: rely on AI to think for you and you lose — keep learning and thinking for yourself to win.
 
 ---
 
@@ -18,32 +18,39 @@ The result is a casual game loop where progression is measured **not just in sco
 
 ### Gameplay
 
-- **Vertical platformer** with procedurally generated platforms (normal, moving, breakable)
-- **Three control modes**: on-screen left/right buttons (mobile), keyboard A/D or arrow keys (desktop), tilt-aware fallback via accelerometer
-- **Power-ups**: shield (immune to obstacles) and speed boost from globe collectibles
-- **HP system** with 3 hearts, game over when hearts hit zero or the player falls off-screen
-- **Animated sky background** with parallax-scrolling clouds for depth perception
+- **Vertical platformer** with procedurally generated platforms — three types with distinct sprites & behavior: **normal** (grass), **moving** (stone, slides horizontally), and **breakable** (wood, plays a break animation when stepped on)
+- **Animated characters & items**: Lumi has 6 pose sprites (idle/jump/land/hurt/collect/shield); collectibles & the obstacle use multi-frame float animations
+- **Controls**: on-screen left/right buttons (mobile) and keyboard `A`/`D` or arrow keys (desktop)
+- **Shield power-up** from globe collectibles — temporary immunity to obstacles
+- **HP system** with **5 hearts**; game over when hearts hit zero or the player falls off-screen
+- **Haptic feedback** on jump, collect, hit, and game over (toggleable)
+- **Background music + sound effects** with independent volume sliders and a quick mute toggle
+- **Animated sky background** with parallax-scrolling clouds
+- **In-game pause menu** (Resume / Restart / Home)
 
 ### Educational layer
 
-- **Fun fact checkpoints** every 100 points — gameplay pauses to display a curated SDG 4 fact
-- **Personal collection page** — every fact you unlock is saved per-user in Firestore and viewable as a grid (collected = blue card, locked = "???" outline)
-- **Progress tracker** — "5 / 12 facts" with progress bar
-- **Bonus fact reward** on the Game Over screen so every run ends with something learned
+- **AI fun-fact checkpoints** every **300 points** — gameplay pauses and Google Gemini generates a fresh, kid-friendly science fact (with offline fallback facts if AI is unavailable)
+- **Anti-duplicate system** (two layers): the AI is told which facts the user already owns, and identical content is rejected on save
+- **Personal collection page** — every fact is saved per-user in Firestore, shown as a grid; mark favorites, delete individual facts, or reset the whole collection
+- **Fun-fact language** selectable independently (English / Bahasa Indonesia)
 
 ### Account & social
 
 - **Firebase Authentication** with Google Sign-In and anonymous guest mode
-- **Global leaderboard** — top 10 scores from all players
-- **Per-user stats** — best score and games played, surfaced on the home dashboard
-- **Settings**: update username, sign out, delete account
+- **Global leaderboard** — top 10 scores (guest scores are *not* saved to the leaderboard)
+- **Per-user stats** — best score & games played on the home dashboard; reset best score from Profile
+- **Achievements / badges** — 7 unlockable achievements (first game, score 500/1000, 10/50 games, 10/25 facts) stored in Firestore and shown on the Profile page
+- **Custom profile photo** — upload your own picture, stored in **Supabase Storage** (falls back to built-in avatars)
 
-### Other
+### Polish & UX
 
-- **Push notifications** via Firebase Cloud Messaging (foreground + background)
-- **Bottom navigation bar** with three tabs (Home, Fun Facts, Leaderboard)
-- **Light mode** with a clean pastel-blue brand palette
-- **Custom mascot** rendered in 3D — appears on login, home, and the fun facts page
+- **Bilingual UI** (English / Bahasa Indonesia) across the whole app, switchable in Settings
+- **Custom typography** — Poppins (headings) + Nunito (body), bundled offline
+- **Consistent design system** — centralized theme, design tokens, reusable card/state widgets, button press animations, page transitions
+- **About page** detailing the SDG 4 targets the game supports (4.1 & 4.7)
+- **Custom app icon** & brand logo
+- **Push notifications** via Firebase Cloud Messaging
 
 ---
 
@@ -52,14 +59,17 @@ The result is a casual game loop where progression is measured **not just in sco
 | Layer | Choice |
 |---|---|
 | Framework | Flutter (Dart `>=3.2.0`) |
-| Game engine | [Flame](https://flame-engine.org/) `^1.18.0` |
+| Game engine | [Flame](https://flame-engine.org/) `^1.18.0` + `flame_audio` |
 | State management | [Riverpod](https://riverpod.dev/) `^2.5.1` |
 | Routing | [go_router](https://pub.dev/packages/go_router) `^13.2.0` with `ShellRoute` for the bottom-nav layout |
 | Auth | `firebase_auth` + `google_sign_in` (anonymous mode supported) |
 | Database | Cloud Firestore |
-| Push notifications | Firebase Cloud Messaging + `flutter_local_notifications` (foreground) |
-| Analytics | Firebase Analytics (prod flavor only) |
-| Sensors | `sensors_plus` (accelerometer-driven fallback) |
+| Media storage | **Supabase Storage** (custom profile photos) |
+| AI content | `google_generative_ai` (Gemini) for fun-fact generation |
+| Push notifications | Firebase Cloud Messaging + `flutter_local_notifications` |
+| Analytics / Crash | Firebase Analytics & Crashlytics |
+| Local prefs | `shared_preferences` (language, volume, haptic) |
+| Media | `image_picker` (profile photo) |
 
 ---
 
@@ -68,43 +78,55 @@ The result is a casual game loop where progression is measured **not just in sco
 ```
 lib/
 ├── core/
-│   ├── constants/        ← AppColors, AppConstants, FirestorePaths
+│   ├── config/           ← ApiKeys (Gemini + Supabase, gitignored)
+│   ├── constants/        ← AppColors, AppConstants, AppDimens, FirestorePaths
+│   ├── i18n/             ← AppStrings (EN/ID), UiLanguage
+│   ├── theme/            ← AppTheme (Poppins/Nunito, component themes)
 │   └── utils/            ← AppLogger
-├── models/               ← UserModel, LeaderboardModel, FunFactModel, CollectedFactModel
-├── services/             ← AuthService, ScoreService, UserService,
-│                            FunFactService, CollectedFactService,
-│                            NotificationService
-├── providers/            ← Riverpod providers for auth/score/HP/fun facts
+├── models/               ← UserModel, LeaderboardModel, FunFactModel,
+│                            CollectedFactModel, AchievementModel
+├── services/             ← Auth, Score, User, FunFact, CollectedFact,
+│                            Achievement, Notification, Audio, Haptic,
+│                            GeminiFunFact, ProfilePhoto (Supabase)
+├── providers/            ← Riverpod providers (auth, score, HP, fun facts,
+│                            achievements, audio, language)
 ├── game/
 │   ├── world/            ← GameWorld (FlameGame entry point)
 │   ├── components/       ← Player, Platform, Obstacle, Collectible, SkyBackground
-│   └── overlays/         ← HudOverlay, FunFactOverlay
+│   └── overlays/         ← HudOverlay, FunFactOverlay, TutorialOverlay
 └── presentation/
-    ├── screens/          ← Splash, Login, Home, Game, GameOver,
-    │                       FunFacts, Leaderboard, Settings, MainShell
-    └── widgets/          ← SdgButton (reusable styled button)
+    ├── screens/          ← Splash, Login, Home, Game, GameOver, FunFacts,
+    │                       Leaderboard, Profile, Settings, About, MainShell
+    └── widgets/          ← SdgButton, AppCard, state views
 ```
 
-### Cloud schema (Firestore)
+### Cloud schema
 
+**Firestore**
 ```
 users/{uid}
-  ├── uid, username, total_games_played, created_at, fcm_token
-  └── collected_facts/{factId}       ← personal collection (full CRUD)
-        ├── fact_id, content, category, collected_at
+  ├── uid, username, avatar_path, photo_url,
+  │   notifications_enabled, total_games_played, created_at, fcm_token
+  ├── collected_facts/{factId}   ← personal fact collection (full CRUD)
+  │     └── fact_id, content, category, collected_at, is_favorite
+  └── achievements/{id}          ← unlocked badges
+        └── id, unlocked_at
 
-leaderboard/{auto}                   ← per-session score entries
+leaderboard/{uid}                ← best score per user (Google accounts only)
   └── user_id (ref), score, timestamp
+```
 
-fun_facts/{factId}                   ← master fact list (read-only from app)
-  └── fact_id, content, category
+**Supabase Storage**
+```
+bucket: avatars/
+  └── {uid}.jpg                  ← custom profile photo (public URL saved to users/{uid}.photo_url)
 ```
 
 The `collected_facts` subcollection demonstrates **full CRUD**:
-- **C**: when a player unlocks a fact in-game
+- **C**: a fact is saved when unlocked at a checkpoint
 - **R**: streamed live to the Fun Facts page
-- **U**: "Refresh" button re-syncs content from the master list
-- **D**: per-fact delete + batch "Reset all" button
+- **U**: toggle favorite on a fact
+- **D**: per-fact delete + batch "Reset all"
 
 ---
 
@@ -113,70 +135,77 @@ The `collected_facts` subcollection demonstrates **full CRUD**:
 ### Prerequisites
 
 - Flutter SDK `>=3.2.0`
-- Android Studio / Xcode for device emulation
-- A Firebase project with:
-  - Authentication → Google + Anonymous providers enabled
-  - Firestore in production or test mode
-  - Cloud Messaging enabled
-  - `google-services.json` (Android) / `GoogleService-Info.plist` (iOS) placed in the platform folders
+- Android Studio for device emulation
+- A **Firebase** project with: Auth (Google + Anonymous), Firestore, Cloud Messaging, and `google-services.json` in `android/app/`
+- A **Supabase** project with a public Storage bucket named `avatars` (for profile photos)
+- API keys — see below
 
-### Setup
+### Configure keys
+
+Copy the template and fill in your keys (the real file is gitignored):
 
 ```bash
-# 1. Install dependencies
-flutter pub get
-
-# 2. (One-time) Configure FlutterFire
-dart pub global activate flutterfire_cli
-flutterfire configure
-
-# 3. Run on a connected device or emulator
-flutter run
+cp lib/core/config/api_keys.example.dart lib/core/config/api_keys.dart
 ```
 
-### Build flavors
+Then set in `api_keys.dart`:
+- `geminiApiKeyFallback` — Google Gemini key ([aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey))
+- `supabaseUrl` & `supabaseAnonKey` — from Supabase → Settings → API
 
-Two entry points are available:
+### Run
 
-- `flutter run -t lib/main_dev.dart`  → dev flavor (analytics disabled, debug banner on)
-- `flutter run -t lib/main_prod.dart` → prod flavor (analytics enabled, debug banner off)
+```bash
+flutter pub get
+flutter run -t lib/main_dev.dart        # dev (debug banner on)
+flutter run -t lib/main_prod.dart       # prod (no banner, label "JumPedia")
+```
 
-### Game controls
+### Build a release APK
 
-| Platform | Left / Right | Notes |
+```bash
+flutter build apk --release -t lib/main_prod.dart
+# output: build/app/outputs/flutter-apk/app-release.apk
+```
+
+> Note: the release build is currently signed with the debug key (fine for sharing/demo, not for the Play Store).
+
+### App icon
+
+The launcher icon is generated from `assets/images/logo_app.png`:
+
+```bash
+dart run flutter_launcher_icons
+```
+
+---
+
+## Controls
+
+| Platform | Move | Notes |
 |---|---|---|
-| Mobile | On-screen buttons (hold to move) | Always visible at the bottom during gameplay |
-| Desktop / Web | `A` / `D` or `←` / `→` | Hint label shown in the corner |
-| All | Tap left half / right half of screen | Fallback when buttons are obscured |
+| Mobile | On-screen Left / Right buttons (hold) | Always visible during gameplay |
+| Desktop | `A` / `D` or `←` / `→` | — |
 
 Jumping is automatic — landing on a platform triggers a bounce.
 
 ---
 
-## Functional Feature that establishes a complete end-to-end connection between the cloud server and the mobile application.
-- Dustin : LeaderBoard & Funfact collection
+## Team & Responsibilities
 
----
-
-## Roadmap / TODO
-
-- [ ] External API integration (e.g. UNESCO UIS, World Bank Education indicators) to enrich the fact pool
-- [ ] Daily login streak rewards
-- [ ] Achievements / badges system
-- [ ] Sound effects + background music (assets folder is already wired in `pubspec.yaml`)
-- [ ] iOS testing & App Store assets
+- **Dustin** — Leaderboard, Fun-fact collection (CRUD), achievements, profile photo (Supabase), UI/UX polish
 
 ---
 
 ## Credits
 
 - **Theme**: UN SDG 4 — Quality Education
-- **Mascot character**: custom 3D illustration (orange-faced student with graduation cap & cape)
+- **Mascot (Lumi)**: custom 3D illustration (graduate with cap & cape)
 - **Game engine**: [Flame](https://flame-engine.org/)
-- **Built with**: Flutter, Firebase
+- **AI**: Google Gemini
+- **Built with**: Flutter, Firebase, Supabase
 
 ---
 
 ## License
 
-This project was built as a coursework submission for **PBB (Pemrograman Berbasis Bergerak / Mobile Programming)** at university level. Not licensed for redistribution.
+Built as a coursework submission for **PBB (Pemrograman Berbasis Bergerak / Mobile Programming)**. Not licensed for redistribution.
