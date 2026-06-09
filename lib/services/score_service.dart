@@ -179,6 +179,55 @@ class ScoreService {
     return data?[FirestorePaths.fieldScore] as int? ?? 0;
   }
 
+  /// SYNC LEADERBOARD FROM HISTORY
+  /// Mengambil skor tertinggi dari `users/{userId}/score_history` dan
+  /// menyamakan dokumen `leaderboard/{userId}` dengan nilai tersebut.
+  /// Jika tidak ada riwayat, dokumen leaderboard akan dihapus.
+  Future<void> syncUserLeaderboardFromHistory(String userId) async {
+    try {
+      final historyCol = _firestore.collection(FirestorePaths.scoreHistoryPath(userId));
+
+      // Ambil skor tertinggi dari riwayat (orderBy score desc, limit 1)
+      final topSnap = await historyCol.orderBy(FirestorePaths.fieldScore, descending: true).limit(1).get();
+
+      if (topSnap.docs.isEmpty) {
+        // Tidak ada riwayat: hapus entry leaderboard jika ada
+        await _firestore.collection(FirestorePaths.leaderboardCollection).doc(userId).delete().catchError((_) {});
+        AppLogger.firestore('SYNC', FirestorePaths.leaderboardCollection,
+            detail: 'No history found — deleted leaderboard entry for $userId');
+        return;
+      }
+
+      final topDoc = topSnap.docs.first;
+      final topData = topDoc.data();
+      final topScoreNum = topData[FirestorePaths.fieldScore] as num?;
+      final topScore = topScoreNum?.toInt() ?? 0;
+
+      // Ambil dokumen leaderboard sekarang
+      final lbRef = _firestore.collection(FirestorePaths.leaderboardCollection).doc(userId);
+      final lbDoc = await lbRef.get();
+      final lbScore = lbDoc.exists ? (lbDoc.data()?[FirestorePaths.fieldScore] as num?)?.toInt() ?? 0 : null;
+
+      // Jika berbeda, update (atau buat) dokumen leaderboard
+      if (lbScore == null || lbScore != topScore) {
+        final userRef = _firestore.collection(FirestorePaths.usersCollection).doc(userId);
+        await lbRef.set({
+          FirestorePaths.fieldUserId: userRef,
+          FirestorePaths.fieldScore: topScore,
+          FirestorePaths.fieldTimestamp: FieldValue.serverTimestamp(),
+        });
+        AppLogger.firestore('SYNC', FirestorePaths.leaderboardCollection,
+            detail: 'Synchronized leaderboard for $userId -> $topScore');
+      } else {
+        AppLogger.firestore('SYNC', FirestorePaths.leaderboardCollection,
+            detail: 'Leaderboard for $userId already up-to-date ($lbScore)');
+      }
+    } catch (e) {
+      AppLogger.firestore('ERROR', FirestorePaths.leaderboardCollection,
+          detail: 'Failed to sync leaderboard from history for $userId: $e');
+    }
+  }
+
   /// ═══════════════════════════════════════
   /// DELETE SCORE
   /// ═══════════════════════════════════════

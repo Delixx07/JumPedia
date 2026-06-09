@@ -5,12 +5,18 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/leaderboard_model.dart';
 import '../../providers/ui_language_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/score_service.dart';
 import '../widgets/state_views.dart';
 
 /// Leaderboard Screen — Top scores dari semua pemain.
 final topScoresProvider = FutureProvider<List<LeaderboardModel>>((ref) async {
   final scoreService = ScoreService();
+  final uid = ref.watch(currentUserUidProvider);
+  if (uid != null) {
+    // Sinkronisasi manual untuk user saat ini sebelum menampilkan papan skor.
+    await scoreService.syncUserLeaderboardFromHistory(uid);
+  }
   return scoreService.getTopScores(limit: 10);
 });
 

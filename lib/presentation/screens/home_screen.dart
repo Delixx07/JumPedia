@@ -40,6 +40,11 @@ final _dashboardStatsProvider =
   final scoreService = ScoreService();
   final userService = UserService();
 
+  // Pastikan leaderboard user sinkron dengan riwayat sebelum menampilkan
+  // statistik di dashboard (manual sync untuk menghindari inkonsistensi
+  // ketika user menghapus riwayat dari UI).
+  await scoreService.syncUserLeaderboardFromHistory(uid);
+
   final bestScoreFuture = scoreService.getUserBestScore(uid);
   final userFuture = userService.getUser(uid);
 
