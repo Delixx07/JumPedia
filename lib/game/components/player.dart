@@ -34,9 +34,6 @@ class Player extends SpriteComponent
   /// Apakah player memiliki shield aktif (kebal dari obstacle).
   bool hasShield = false;
 
-  /// Timer untuk speed boost (detik tersisa).
-  double speedBoostTimer = 0.0;
-
   /// Arah horizontal: -1 = kiri, 0 = diam, 1 = kanan.
   int _horizontalDirection = 0;
 
@@ -187,11 +184,7 @@ class Player extends SpriteComponent
     velocity.y += AppConstants.gravity * dt;
 
     // ─── Horizontal Movement ─────────────
-    final moveSpeed = speedBoostTimer > 0
-        ? AppConstants.playerMoveSpeed * AppConstants.speedBoostMultiplier
-        : AppConstants.playerMoveSpeed;
-
-    velocity.x = _horizontalDirection * moveSpeed;
+    velocity.x = _horizontalDirection * AppConstants.playerMoveSpeed;
 
     // ─── Apply Velocity ──────────────────
     position += velocity * dt;
@@ -204,14 +197,6 @@ class Player extends SpriteComponent
       position.x = -size.x;
     }
 
-    // ─── Speed Boost Timer ───────────────
-    if (speedBoostTimer > 0) {
-      speedBoostTimer -= dt;
-      if (speedBoostTimer <= 0) {
-        speedBoostTimer = 0;
-        AppLogger.game('Speed boost ended');
-      }
-    }
 
     // ─── Game Over Check ─────────────────
     // Jika player jatuh terlalu jauh di bawah layar
@@ -275,13 +260,6 @@ class Player extends SpriteComponent
     AppLogger.game('Shield activated for ${duration}s');
   }
 
-  /// ═══════════════════════════════════════
-  /// ACTIVATE SPEED BOOST
-  /// ═══════════════════════════════════════
-  void activateSpeedBoost(double duration) {
-    speedBoostTimer = duration;
-    AppLogger.game('Speed boost activated for ${duration}s');
-  }
 
   /// ═══════════════════════════════════════
   /// COLLISION HANDLING

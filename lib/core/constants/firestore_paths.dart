@@ -49,6 +49,7 @@ class FirestorePaths {
   static const String leaderboardCollection = 'leaderboard';
   static const String funFactsCollection = 'fun_facts';
   static const String collectedFactsSubcollection = 'collected_facts';
+  static const String achievementsSubcollection = 'achievements';
 
   // ─── Document Paths ───────────────────
 
@@ -60,6 +61,10 @@ class FirestorePaths {
   /// Contoh: 'users/abc123/collected_facts'
   static String collectedFactsPath(String uid) =>
       '$usersCollection/$uid/$collectedFactsSubcollection';
+
+  /// Path ke subcollection achievements milik user.
+  static String achievementsPath(String uid) =>
+      '$usersCollection/$uid/$achievementsSubcollection';
 
   /// Path ke sub-field FCM token di dokumen user.
   /// Field ini disimpan langsung di dokumen user.

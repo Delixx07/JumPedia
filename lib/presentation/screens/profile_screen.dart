@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/i18n/app_strings.dart';
+import '../../models/achievement_model.dart';
 import '../../models/user_model.dart';
+import '../../providers/achievement_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/ui_language_provider.dart';
 import '../widgets/state_views.dart';
@@ -279,6 +282,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                     const SizedBox(height: 32),
 
+                    // ─── Achievements / Lencana ───────
+                    _buildSectionTitle(s.myAchievements),
+                    const SizedBox(height: 12),
+                    _AchievementsSection(s: s),
+
+                    const SizedBox(height: 32),
+
                     // ─── Preferences ──────────────────
                     _buildSectionTitle(s.preferences),
                     const SizedBox(height: 12),
@@ -432,6 +442,173 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// Section lencana: grid badge terbuka/terkunci + progress.
+/// Status unlock dari Firestore; jumlah fakta dihitung dari koleksi user.
+class _AchievementsSection extends ConsumerWidget {
+  final AppStrings s;
+  const _AchievementsSection({required this.s});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unlockedAsync = ref.watch(unlockedAchievementsProvider);
+
+    final unlocked = unlockedAsync.maybeWhen(
+      data: (set) => set,
+      orElse: () => const <String>{},
+    );
+
+    final all = AchievementCatalog.all;
+    final unlockedCount = all.where((a) => unlocked.contains(a.id)).length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          s.achievementsProgress(unlockedCount, all.length),
+          style: const TextStyle(color: AppColors.textLo, fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: all.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.78,
+          ),
+          itemBuilder: (context, i) {
+            final def = all[i];
+            final isUnlocked = unlocked.contains(def.id);
+            return _AchievementBadge(
+              def: def,
+              s: s,
+              isUnlocked: isUnlocked,
+              onTap: () => _showDetail(context, def, isUnlocked),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showDetail(BuildContext context, AchievementDef def, bool isUnlocked) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: (isUnlocked ? def.color : AppColors.textLo)
+                    .withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isUnlocked ? def.icon : Icons.lock_rounded,
+                size: 40,
+                color: isUnlocked ? def.color : AppColors.textLo,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(def.title(s),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: AppColors.textHi,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text(def.description(s),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textLo)),
+            if (!isUnlocked) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.textLo.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(s.achievementLocked,
+                    style: const TextStyle(
+                        color: AppColors.textLo,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(s.close),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AchievementBadge extends StatelessWidget {
+  final AchievementDef def;
+  final AppStrings s;
+  final bool isUnlocked;
+  final VoidCallback onTap;
+
+  const _AchievementBadge({
+    required this.def,
+    required this.s,
+    required this.isUnlocked,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isUnlocked ? def.color : AppColors.textLo;
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: isUnlocked ? 0.15 : 0.08),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: color.withValues(alpha: isUnlocked ? 0.6 : 0.25),
+                width: 1.5,
+              ),
+            ),
+            child: Icon(
+              isUnlocked ? def.icon : Icons.lock_rounded,
+              color: isUnlocked ? color : AppColors.textLo.withValues(alpha: 0.6),
+              size: 26,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            def.title(s),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              height: 1.1,
+              fontWeight: FontWeight.w600,
+              color: isUnlocked ? AppColors.textHi : AppColors.textLo,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

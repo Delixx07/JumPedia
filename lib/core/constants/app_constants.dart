@@ -26,8 +26,9 @@ class AppConstants {
   /// Lebar platform default (pixel).
   static const double platformWidth = 80.0;
 
-  /// Tinggi platform default (pixel).
-  static const double platformHeight = 15.0;
+  /// Tinggi platform default (pixel). Dinaikkan dari 15 agar sprite
+  /// platform (rumput+tanah / batu) tampil proporsional, tidak gepeng.
+  static const double platformHeight = 30.0;
 
   /// Kecepatan platform bergerak (tipe moving) (pixel/detik).
   static const double movingPlatformSpeed = 80.0;
@@ -43,8 +44,8 @@ class AppConstants {
   static const int maxHp = 5;
 
   /// Ukuran sprite player (pixel).
-  static const double playerWidth = 40.0;
-  static const double playerHeight = 50.0;
+  static const double playerWidth = 52.0;
+  static const double playerHeight = 64.0;
 
   // ─── Scoring ──────────────────────────
   /// Poin yang didapat saat mengambil buku.
@@ -59,11 +60,8 @@ class AppConstants {
   static const int funFactScoreInterval = 300;
 
   // ─── Boost Settings ───────────────────
-  /// Durasi shield/speed boost dari globe collectible (detik).
+  /// Durasi shield dari globe collectible (detik).
   static const double boostDuration = 5.0;
-
-  /// Multiplier kecepatan saat speed boost aktif.
-  static const double speedBoostMultiplier = 1.5;
 
   // ─── Leaderboard ──────────────────────
   /// Jumlah skor teratas yang ditampilkan di leaderboard.

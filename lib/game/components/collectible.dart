@@ -1,6 +1,4 @@
-﻿import 'dart:async';
-import 'dart:math';
-import 'dart:ui';
+import 'dart:async';
 
 import 'package:flame/cache.dart';
 import 'package:flame/collisions.dart';
@@ -17,17 +15,18 @@ enum CollectibleType {
   /// Buku — memberikan +10 poin saat dikumpulkan.
   book,
 
-  /// Bola Dunia — memberikan shield atau speed boost selama 5 detik.
+  /// Bola Dunia — memberikan shield selama 5 detik.
   globe,
 }
 
 /// ═══════════════════════════════════════
 /// COLLECTIBLE COMPONENT — JumPedia
 /// ═══════════════════════════════════════
-/// Objek yang bisa dikumpulkan player untuk mendapat poin atau boost.
-/// Buku: +10 poin | Globe: shield/speed boost 5 detik.
+/// Objek yang bisa dikumpulkan player. Tampil sebagai animasi "float"
+/// 8-frame (book_float_0..7 / globe_float_0..7) agar terlihat hidup.
+/// Buku: +10 poin | Globe: shield 5 detik.
 
-class Collectible extends SpriteComponent
+class Collectible extends SpriteAnimationComponent
     with CollisionCallbacks, HasGameReference<GameWorld> {
   /// Tipe collectible.
   final CollectibleType type;
@@ -35,24 +34,15 @@ class Collectible extends SpriteComponent
   /// Apakah sudah dikumpulkan (mencegah double-collect).
   bool _collected = false;
 
-  /// Animasi hover: offset vertikal.
-  double _hoverOffset = 0;
-  double _hoverTime = 0;
-
-  // Path relatif terhadap prefix 'assets/collectibles/'
-  static final _bookAssets = [
-    'book.png',
-    'pencil.png',
-  ];
-  static const _globeAsset = 'globe.png';
-  static final _rng = Random();
-
-  // Custom Images cache agar Flame load dari assets/collectibles/ bukan assets/images/
+  // Custom Images cache agar Flame load dari assets/collectibles/.
   static final _collectiblesImages = Images(prefix: 'assets/collectibles/');
 
   /// Lebar/tinggi sprite collectible. Dipakai juga oleh logika spawn di
   /// GameWorld untuk menghindari obstacle yang menimpa collectible.
   static const double kSize = 40;
+
+  /// Jumlah frame animasi float.
+  static const int _frameCount = 8;
 
   Collectible({
     required Vector2 position,
@@ -65,32 +55,34 @@ class Collectible extends SpriteComponent
 
   @override
   FutureOr<void> onLoad() async {
-    final path = switch (type) {
-      CollectibleType.book => _bookAssets[_rng.nextInt(_bookAssets.length)],
-      CollectibleType.globe => _globeAsset,
-    };
+    final folder = type == CollectibleType.book ? 'book' : 'globe';
+    final prefix = type == CollectibleType.book ? 'book_float' : 'globe_float';
 
     try {
-      sprite = await Sprite.load(path, images: _collectiblesImages);
+      final frames = <Sprite>[];
+      for (var i = 0; i < _frameCount; i++) {
+        frames.add(await Sprite.load(
+          '$folder/animation/${prefix}_$i.png',
+          images: _collectiblesImages,
+        ));
+      }
+      animation = SpriteAnimation.spriteList(
+        frames,
+        stepTime: 0.1, // ~1.25 detik per loop, gerak float lembut
+      );
     } catch (e) {
-      AppLogger.warning('Sprite collectible tidak ditemukan ($path): $e');
+      AppLogger.warning('Animasi collectible tidak ditemukan ($folder): $e');
+      // Fallback: sprite statis tunggal agar item tetap tampil.
+      try {
+        final still =
+            await Sprite.load('$folder/$folder.png', images: _collectiblesImages);
+        animation = SpriteAnimation.spriteList([still], stepTime: 1);
+      } catch (_) {
+        // biarkan kosong; tidak crash
+      }
     }
+
     add(CircleHitbox());
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _hoverTime += dt * 3;
-    _hoverOffset = 3 * sin(_hoverTime);
-  }
-
-  @override
-  void render(Canvas canvas) {
-    canvas.save();
-    canvas.translate(0, _hoverOffset);
-    super.render(canvas);
-    canvas.restore();
   }
 
   /// ═══════════════════════════════════════
@@ -103,19 +95,16 @@ class Collectible extends SpriteComponent
 
     switch (type) {
       case CollectibleType.book:
-        // Tambah poin via scoreProvider
         gameWorld.addScore(AppConstants.bookPoints);
         AppLogger.game('📚 Buku dikumpulkan! +${AppConstants.bookPoints} poin');
         break;
 
       case CollectibleType.globe:
-        // Aktifkan shield atau speed boost
         gameWorld.activatePlayerBoost();
-        AppLogger.game('🌍 Globe dikumpulkan! Boost aktif!');
+        AppLogger.game('🌍 Globe dikumpulkan! Shield aktif!');
         break;
     }
 
-    // Hapus dari game world
     removeFromParent();
   }
 }

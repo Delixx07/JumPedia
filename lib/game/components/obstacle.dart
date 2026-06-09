@@ -1,5 +1,4 @@
-﻿import 'dart:async';
-import 'dart:math';
+import 'dart:async';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
@@ -10,21 +9,18 @@ import '../world/game_world.dart';
 /// ═══════════════════════════════════════
 /// OBSTACLE COMPONENT — JumPedia
 /// ═══════════════════════════════════════
-/// Rintangan berupa sampah plastik yang mengurangi HP player.
+/// Rintangan berupa robot "AI" — melambangkan ketergantungan pada AI yang
+/// membuat orang malas berpikir. Menyentuhnya mengurangi HP player.
 /// Jika player memiliki shield, obstacle tidak memberikan damage.
+/// Tampil sebagai animasi float 7-frame.
 
-class Obstacle extends SpriteComponent
+class Obstacle extends SpriteAnimationComponent
     with CollisionCallbacks, HasGameReference<GameWorld> {
   /// Apakah obstacle sudah memberikan damage (mencegah double-hit).
   bool _hasHit = false;
 
-  // Path relatif terhadap prefix 'assets/images/' (Flame default)
-  static const _assets = [
-    'obstacle/kantong_plastik.png',
-    'obstacle/botol_plastik.png',
-    'obstacle/botol_kaleng.png',
-  ];
-  static final _rng = Random();
+  /// Jumlah frame animasi float (obstacle_ai_float_1..7).
+  static const int _frameCount = 7;
 
   /// Lebar/tinggi obstacle (kotak). Dipakai juga oleh logika spawn di
   /// GameWorld untuk menghitung tumpang tindih.
@@ -41,9 +37,21 @@ class Obstacle extends SpriteComponent
   @override
   FutureOr<void> onLoad() async {
     try {
-      sprite = await Sprite.load(_assets[_rng.nextInt(_assets.length)]);
+      final frames = <Sprite>[];
+      // Frame dimulai dari 1 (obstacle_ai_float_1..7).
+      for (var i = 1; i <= _frameCount; i++) {
+        frames.add(await Sprite.load('obstacle/animation/obstacle_ai_float_$i.png'));
+      }
+      animation = SpriteAnimation.spriteList(frames, stepTime: 0.1);
     } catch (e) {
-      AppLogger.warning('Sprite obstacle tidak ditemukan: $e');
+      AppLogger.warning('Animasi obstacle tidak ditemukan: $e');
+      // Fallback: sprite statis tunggal agar obstacle tetap tampil.
+      try {
+        final still = await Sprite.load('obstacle/obstacle_ai.png');
+        animation = SpriteAnimation.spriteList([still], stepTime: 1);
+      } catch (_) {
+        // biarkan; tidak crash
+      }
     }
     add(RectangleHitbox());
   }
@@ -59,7 +67,7 @@ class Obstacle extends SpriteComponent
 
     // Kurangi HP via game world (yang meneruskan ke hpProvider)
     gameWorld.reducePlayerHp();
-    AppLogger.game('💥 Player terkena obstacle! HP berkurang.');
+    AppLogger.game('💥 Player terkena obstacle AI! HP berkurang.');
 
     // Hapus obstacle setelah hit
     removeFromParent();

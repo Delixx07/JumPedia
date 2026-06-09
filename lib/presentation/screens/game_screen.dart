@@ -15,6 +15,10 @@ import '../../providers/hp_provider.dart';
 import '../../providers/score_provider.dart';
 import '../../providers/fun_fact_provider.dart';
 import '../../services/score_service.dart';
+import '../../services/user_service.dart';
+import '../../services/collected_fact_service.dart';
+import '../../services/achievement_service.dart';
+import '../../models/achievement_model.dart';
 import '../../providers/auth_provider.dart';
 
 /// Game Screen — Wrapper untuk GameWidget dari Flame.
@@ -35,6 +39,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// atau gagal, user tetap punya tombol Restart / Back Home).
   bool _isGameOver = false;
 
+  /// Apakah menu jeda (pause) sedang terbuka.
+  bool _isPauseMenuOpen = false;
+
   /// Apakah platform ini punya keyboard fisik dan tidak butuh on-screen
   /// control (desktop / web). Mobile + tablet selalu dapat tombol.
   bool get _isDesktop =>
@@ -54,19 +61,27 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       ref.read(hpProvider.notifier).resetHp();
       ref.read(shownFactsProvider.notifier).reset();
       ref.read(factCheckpointProvider.notifier).reset();
-      // Pause game selama tutorial ditampilkan (overlay 'tutorial' aktif
-      // sejak awal). Resume saat pemain menekan "Start!".
+      // Tampilkan tutorial sekali di awal & pause game. Resume + remove saat
+      // pemain menekan "Start!". (Ditambah manual, BUKAN lewat
+      // initialActiveOverlays, agar rebuild GameWidget tidak memunculkannya
+      // kembali setelah ditutup.)
+      _gameWorld.overlays.add('tutorial');
       _gameWorld.pauseEngine();
       _focusNode.requestFocus();
+      if (mounted) setState(() {});
     });
   }
 
   /// Tutup tutorial & mulai game.
+  /// Pola sama dengan versi yang sudah terbukti bekerja: lepas overlay lalu
+  /// resume engine. `setState` memastikan kontrol in-game ikut muncul.
   void _dismissTutorial() {
     _gameWorld.overlays.remove('tutorial');
-    if (!_gameWorld.paused) return;
-    _gameWorld.resumeEngine();
-    _focusNode.requestFocus();
+    if (_gameWorld.paused) {
+      _gameWorld.resumeEngine();
+      _focusNode.requestFocus();
+    }
+    if (mounted) setState(() {});
   }
 
   @override
@@ -85,6 +100,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       },
       hideOverlay: (name) {
         _gameWorld.overlays.remove(name);
+        if (mounted) setState(() {});
       },
     );
     AppLogger.game('GameScreen initialized');
@@ -117,6 +133,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       scoreService
           .saveScore(uid, score)
           .then((_) => scoreService.incrementGamesPlayed(uid))
+          .then((_) => _evaluateAchievements(uid))
           .catchError((Object e) {
         AppLogger.error('Failed to save score', error: e);
       });
@@ -130,6 +147,34 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         context.go('/game-over');
       }
     });
+  }
+
+  /// Hitung statistik terbaru lalu buka lencana yang syaratnya terpenuhi.
+  /// Dipanggil setelah skor & total game tersimpan (fire-and-forget).
+  Future<void> _evaluateAchievements(String uid) async {
+    final bestScore = await ScoreService().getUserBestScore(uid);
+    final facts = await CollectedFactService().getCollectedContents(uid);
+    final user = await UserService().getUser(uid);
+
+    final stats = AchievementStats(
+      bestScore: bestScore,
+      totalGames: user?.totalGamesPlayed ?? 0,
+      factsCollected: facts.length,
+    );
+    await AchievementService().evaluateAndUnlock(uid, stats);
+  }
+
+  /// Buka menu jeda: pause engine & tampilkan menu (Resume / Restart / Home).
+  void _openPauseMenu() {
+    if (!_gameWorld.paused) _gameWorld.pauseEngine();
+    setState(() => _isPauseMenuOpen = true);
+  }
+
+  /// Tutup menu jeda & lanjutkan permainan.
+  void _closePauseMenu() {
+    if (_gameWorld.paused) _gameWorld.resumeEngine();
+    _focusNode.requestFocus();
+    setState(() => _isPauseMenuOpen = false);
   }
 
   /// Keyboard handler untuk desktop / web — A/D, panah kiri/kanan.
@@ -153,8 +198,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return KeyEventResult.ignored;
   }
 
+  /// Apakah ada overlay yang memblokir gameplay (tutorial / fun fact).
+  /// Saat aktif, tombol kontrol in-game (home/pause/arah) disembunyikan
+  /// agar tidak bentrok dengan pause dari overlay.
+  bool get _overlayActive =>
+      _gameWorld.overlays.isActive('tutorial') ||
+      _gameWorld.overlays.isActive('funFact');
+
   @override
   Widget build(BuildContext context) {
+    final controlsVisible = !_isGameOver && !_overlayActive && !_isPauseMenuOpen;
     return Scaffold(
       body: Focus(
         focusNode: _focusNode,
@@ -171,44 +224,35 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 'tutorial': (context, game) =>
                     TutorialOverlay(onStart: _dismissTutorial),
               },
-              initialActiveOverlays: const ['hud', 'tutorial'],
+              // Hanya 'hud' di initial. 'tutorial' ditambahkan manual di
+              // initState — kalau dimasukkan ke initialActiveOverlays, rebuild
+              // GameWidget (akibat setState) bisa memunculkannya KEMBALI setelah
+              // ditutup (bug "tutorial tidak hilang saat Start").
+              initialActiveOverlays: const ['hud'],
             ),
 
-            // ─── Pause button (kanan atas) ──────────
-            Positioned(
-              top: 12,
-              right: 12,
-              child: SafeArea(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      if (_gameWorld.paused) {
-                        _gameWorld.resumeEngine();
-                      } else {
-                        _gameWorld.pauseEngine();
-                      }
-                      setState(() {});
-                    },
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Icon(
-                        _gameWorld.paused
-                            ? Icons.play_arrow
-                            : Icons.pause,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
+            // ─── Tombol Pause (satu, kanan atas) ────
+            // Membuka menu jeda (Resume / Restart / Home). Menggantikan dua
+            // tombol terpisah yang dulu berdesakan dengan HUD.
+            if (controlsVisible)
+              Positioned(
+                top: 10,
+                right: 12,
+                child: SafeArea(
+                  child: _RoundIconButton(
+                    icon: Icons.pause_rounded,
+                    onTap: _openPauseMenu,
                   ),
                 ),
               ),
-            ),
+
+            // ─── Menu Jeda (overlay) ────────────────
+            if (_isPauseMenuOpen)
+              _PauseMenu(
+                onResume: _closePauseMenu,
+                onRestart: () => context.go('/game'),
+                onHome: () => context.go('/home'),
+              ),
 
             // ─── Inline Game Over overlay (safety net) ──
             // Muncul saat HP=0; tetap di sini sampai navigasi ke
@@ -220,7 +264,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ),
 
             // ─── On-screen controls (mobile) ────────
-            if (!_isDesktop && !_isGameOver)
+            if (!_isDesktop && controlsVisible)
               Positioned(
                 left: 0,
                 right: 0,
@@ -292,6 +336,171 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Menu jeda in-game — Resume / Restart / Home. Tampil di atas game yang
+/// sudah di-pause, dengan latar gelap blur agar fokus.
+class _PauseMenu extends StatelessWidget {
+  final VoidCallback onResume;
+  final VoidCallback onRestart;
+  final VoidCallback onHome;
+
+  const _PauseMenu({
+    required this.onResume,
+    required this.onRestart,
+    required this.onHome,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.6),
+        alignment: Alignment.center,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          decoration: BoxDecoration(
+            color: AppColors.bgMid,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.25),
+                blurRadius: 30,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.pause_rounded,
+                    color: AppColors.primary, size: 32),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Jeda',
+                style: TextStyle(
+                  color: AppColors.textHi,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 22),
+              _PauseMenuButton(
+                icon: Icons.play_arrow_rounded,
+                label: 'Lanjut Main',
+                filled: true,
+                onTap: onResume,
+              ),
+              const SizedBox(height: 10),
+              _PauseMenuButton(
+                icon: Icons.refresh_rounded,
+                label: 'Ulang',
+                filled: false,
+                onTap: onRestart,
+              ),
+              const SizedBox(height: 10),
+              _PauseMenuButton(
+                icon: Icons.home_rounded,
+                label: 'Beranda',
+                filled: false,
+                onTap: onHome,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PauseMenuButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool filled;
+  final VoidCallback onTap;
+
+  const _PauseMenuButton({
+    required this.icon,
+    required this.label,
+    required this.filled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: filled
+          ? ElevatedButton.icon(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: Icon(icon),
+              label: Text(label,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w800)),
+            )
+          : OutlinedButton.icon(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textHi,
+                side: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.7)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: Icon(icon),
+              label: Text(label,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700)),
+            ),
+    );
+  }
+}
+
+/// Tombol bulat kecil semi-transparan untuk kontrol in-game (home/pause).
+class _RoundIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _RoundIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Icon(icon, color: Colors.white, size: 24),
         ),
       ),
     );

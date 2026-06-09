@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:google_fonts/google_fonts.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/utils/logger.dart';
@@ -108,9 +107,6 @@ CustomTransitionPage<void> _fadePage(GoRouterState state, Widget child) {
 Future<void> mainCommon() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Pakai font yang sudah di-bundle di assets/fonts (offline). Tanpa ini,
-  // google_fonts mengunduh font saat runtime & membuat startup freeze (ANR).
-  GoogleFonts.config.allowRuntimeFetching = false;
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

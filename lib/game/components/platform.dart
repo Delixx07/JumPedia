@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
@@ -24,10 +24,11 @@ enum PlatformType {
 /// ═══════════════════════════════════════
 /// PLATFORM COMPONENT — JumPedia
 /// ═══════════════════════════════════════
-/// PositionComponent untuk platform yang bisa diinjak player.
+/// SpriteComponent untuk platform yang bisa diinjak player.
 /// Mendukung 3 tipe: normal (statis), moving (bergerak), breakable (hancur).
+/// Tampilan memakai sprite gambar dari assets/images/platforms/.
 
-class Platform extends PositionComponent with CollisionCallbacks {
+class Platform extends SpriteComponent with CollisionCallbacks {
   /// Tipe platform.
   final PlatformType type;
 
@@ -43,8 +44,8 @@ class Platform extends PositionComponent with CollisionCallbacks {
   /// Apakah platform sudah diinjak (untuk breakable).
   bool _isBroken = false;
 
-  /// Paint berdasarkan tipe platform.
-  late final Paint _paint;
+  /// Frame animasi pecah untuk breakable.
+  final List<Sprite> _breakFrames = [];
 
   Platform({
     required Vector2 position,
@@ -60,61 +61,73 @@ class Platform extends PositionComponent with CollisionCallbacks {
           size: Vector2(width, AppConstants.platformHeight),
         );
 
-  @override
-  FutureOr<void> onLoad() {
-    // Set warna berdasarkan tipe platform
-    _paint = Paint()
-      ..color = switch (type) {
-        PlatformType.normal => const Color(0xFF8BC34A), // Hijau
-        PlatformType.moving => const Color(0xFF2196F3), // Biru
-        PlatformType.breakable => const Color(0xFFFF9800), // Oranye
-      };
+  /// Pilih nama file varian lebar terdekat (120 / 160 / 180).
+  static String _widthVariant(double width) {
+    if (width <= 140) return '120';
+    if (width <= 170) return '160';
+    return '180';
+  }
 
-    // Tambah hitbox untuk collision detection
-    add(RectangleHitbox());
+  @override
+  FutureOr<void> onLoad() async {
+    final variant = _widthVariant(size.x);
+
+    try {
+      switch (type) {
+        case PlatformType.normal:
+          sprite = await Sprite.load(
+              'platforms/platform_normal/platform_normal_$variant.png');
+          break;
+        case PlatformType.moving:
+          sprite = await Sprite.load(
+              'platforms/platform_moving/platform_moving_$variant.png');
+          break;
+        case PlatformType.breakable:
+          // Tampilan awal: sprite breakable utuh (varian lebar).
+          sprite = await Sprite.load(
+              'platforms/platform_breakable/platform_breakable_$variant.png');
+          // Frame animasi pecah (dimuat dari subfolder animation/).
+          for (final i in const [0, 1, 2, 3, 5]) {
+            _breakFrames.add(await Sprite.load(
+                'platforms/platform_breakable/animation/platform_breakable_break_$i.png'));
+          }
+          break;
+      }
+    } catch (e) {
+      AppLogger.warning('Sprite platform tidak ditemukan: $e');
+    }
+
+    // Hitbox tipis di permukaan ATAS platform — tempat player mendarat.
+    // Tidak setinggi sprite agar fisika landing terasa pas (player bounce
+    // saat menyentuh rumput/permukaan, bukan badan tanah di bawah).
+    add(RectangleHitbox(
+      size: Vector2(size.x, size.y * 0.5),
+      position: Vector2(0, 0),
+    ));
   }
 
   @override
   void render(Canvas canvas) {
-    if (_isBroken) return; // Jangan render jika sudah hancur
-
-    // Render platform sebagai rounded rectangle
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.x, size.y),
-        const Radius.circular(4),
-      ),
-      _paint,
-    );
-
-    // Indikator visual untuk platform moving (garis-garis)
-    if (type == PlatformType.moving) {
-      final arrowPaint = Paint()
-        ..color = const Color(0xFFFFFFFF)
-        ..strokeWidth = 2;
-      canvas.drawLine(
-        Offset(size.x * 0.3, size.y / 2),
-        Offset(size.x * 0.7, size.y / 2),
-        arrowPaint,
+    // Saat sprite belum selesai dimuat (atau gagal), JANGAN biarkan
+    // SpriteComponent melempar assertion 'sprite != null'. Gambar fallback
+    // sederhana (kapsul hijau/abu) sampai sprite siap.
+    if (sprite == null) {
+      final paint = Paint()
+        ..color = switch (type) {
+          PlatformType.normal => const Color(0xFF8BC34A),
+          PlatformType.moving => const Color(0xFF90A4AE),
+          PlatformType.breakable => const Color(0xFFFF9800),
+        };
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.x, size.y),
+          const Radius.circular(6),
+        ),
+        paint,
       );
+      return;
     }
-
-    // Indikator visual untuk platform breakable (retak)
-    if (type == PlatformType.breakable) {
-      final crackPaint = Paint()
-        ..color = const Color(0x88000000)
-        ..strokeWidth = 1;
-      canvas.drawLine(
-        Offset(size.x * 0.3, 0),
-        Offset(size.x * 0.5, size.y),
-        crackPaint,
-      );
-      canvas.drawLine(
-        Offset(size.x * 0.6, 0),
-        Offset(size.x * 0.4, size.y),
-        crackPaint,
-      );
-    }
+    super.render(canvas);
   }
 
   @override
@@ -138,17 +151,22 @@ class Platform extends PositionComponent with CollisionCallbacks {
   /// BREAK PLATFORM
   /// ═══════════════════════════════════════
   /// Dipanggil saat player menginjak platform breakable.
-  /// Platform akan hancur dan dihapus dari parent setelah delay singkat.
+  /// Memainkan animasi frame pecah lalu menghapus platform.
   void breakPlatform() {
     if (type != PlatformType.breakable || _isBroken) return;
-
     _isBroken = true;
     AppLogger.game('Platform breakable hancur di posisi $position');
 
-    // Hapus dari parent setelah delay animasi singkat
-    Future.delayed(const Duration(milliseconds: 200), () {
+    // Mainkan frame pecah berurutan (~70ms per frame), lalu hapus.
+    const frameDuration = Duration(milliseconds: 70);
+    for (var i = 0; i < _breakFrames.length; i++) {
+      Future.delayed(frameDuration * (i + 1), () {
+        if (!isMounted) return;
+        sprite = _breakFrames[i];
+      });
+    }
+    Future.delayed(frameDuration * (_breakFrames.length + 1), () {
       if (isMounted) removeFromParent();
     });
   }
-
 }

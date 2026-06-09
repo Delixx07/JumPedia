@@ -74,12 +74,24 @@ flutter:
     - assets/images/
     - assets/images/lumi/
     - assets/images/obstacle/
+    - assets/images/obstacle/animation/
     - assets/images/avatars/
+    - assets/images/platforms/platform_normal/
+    - assets/images/platforms/platform_moving/
+    - assets/images/platforms/platform_breakable/
+    - assets/images/platforms/platform_breakable/animation/
     - assets/collectibles/
+    - assets/collectibles/book/
+    - assets/collectibles/book/animation/
+    - assets/collectibles/globe/
+    - assets/collectibles/globe/animation/
     - assets/audio/
 
   fonts:
-    # Bundled offline (mencegah fetch runtime google_fonts → tanpa freeze/ANR).
+    # Font di-bundle & dipakai langsung sebagai family Flutter (fontFamily),
+    # BUKAN lewat google_fonts runtime — supaya tidak ada error "weight not
+    # found" / fetch internet. Poppins punya weight lengkap; Nunito variable
+    # font didukung Flutter untuk semua weight via satu file.
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins-Regular.ttf
@@ -90,6 +102,8 @@ flutter:
           weight: 600
         - asset: assets/fonts/Poppins-Bold.ttf
           weight: 700
+        - asset: assets/fonts/Poppins-ExtraBold.ttf
+          weight: 800
         - asset: assets/fonts/Poppins-Black.ttf
           weight: 900
     - family: Nunito

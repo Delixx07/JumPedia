@@ -9,6 +9,8 @@
 ///   2. isi nilainya di _en & _id
 library;
 
+import '../../models/achievement_model.dart';
+
 enum UiLanguage {
   english,
   indonesian;
@@ -28,7 +30,7 @@ enum UiLanguage {
 }
 
 /// Akses teks UI untuk bahasa terpilih.
-class AppStrings {
+class AppStrings implements AchievementStrings {
   final UiLanguage lang;
   const AppStrings(this.lang);
 
@@ -118,10 +120,10 @@ class AppStrings {
   String get aboutTitle => _t('About JumPedia', 'Tentang JumPedia');
   String appVersion(String v) => _t('Version $v', 'Versi $v');
   String get aboutDescription => _t(
-      'JumPedia is an educational platformer where you jump high, '
-      'dodge plastic trash, and collect science fun facts.',
-      'JumPedia adalah game platformer edukatif: lompat tinggi, '
-      'hindari sampah plastik, dan kumpulkan fakta sains.');
+      'JumPedia is an educational platformer where you jump high, dodge the '
+      '"lazy-thinking AI", and collect science fun facts along the way.',
+      'JumPedia adalah game platformer edukatif: lompat tinggi, hindari '
+      '"AI yang membuat malas berpikir", dan kumpulkan fakta sains.');
   String get sdgTitle => _t('The SDG We Support', 'SDG yang Kami Dukung');
   String get sdg4 => _t('SDG 4 — Quality Education',
       'SDG 4 — Pendidikan Berkualitas');
@@ -130,6 +132,78 @@ class AppStrings {
       'lifelong learning opportunities for all.',
       'Memastikan pendidikan berkualitas yang inklusif dan merata serta '
       'mendorong kesempatan belajar sepanjang hayat bagi semua.');
+
+  /// Judul section daftar target SDG 4.
+  String get sdg4TargetsTitle =>
+      _t('SDG 4 Targets', 'Target-Target SDG 4');
+
+  /// 8 target SDG 4 (kode, judul, deskripsi) — dwibahasa.
+  List<(String, String, String)> get sdg4Targets => [
+        (
+          '4.1',
+          _t('Free Primary & Secondary Education',
+              'Pendidikan Dasar & Menengah Gratis'),
+          _t(
+              'By 2030, ensure all girls and boys complete free, equitable, and quality primary and secondary education.',
+              'Pada 2030, pastikan semua anak menuntaskan pendidikan dasar dan menengah yang gratis, setara, dan berkualitas.'),
+        ),
+        (
+          '4.2',
+          _t('Equal Access to Pre-Primary Education',
+              'Akses Setara PAUD'),
+          _t(
+              'By 2030, ensure all children have access to quality early childhood development, care, and pre-primary education.',
+              'Pada 2030, pastikan semua anak memperoleh pengembangan, perawatan, dan pendidikan anak usia dini yang berkualitas.'),
+        ),
+        (
+          '4.3',
+          _t('Affordable Technical & Higher Education',
+              'Pendidikan Tinggi & Vokasi Terjangkau'),
+          _t(
+              'By 2030, ensure equal access for all to affordable and quality technical, vocational, and tertiary education.',
+              'Pada 2030, pastikan akses setara ke pendidikan teknik, vokasi, dan tinggi yang terjangkau dan berkualitas.'),
+        ),
+        (
+          '4.4',
+          _t('Relevant Skills for Decent Work',
+              'Keterampilan untuk Kerja Layak'),
+          _t(
+              'By 2030, substantially increase the number of people with relevant technical and vocational skills for employment.',
+              'Pada 2030, tingkatkan jumlah orang dengan keterampilan teknik dan vokasi yang relevan untuk pekerjaan.'),
+        ),
+        (
+          '4.5',
+          _t('Eliminate Discrimination in Education',
+              'Hapus Diskriminasi dalam Pendidikan'),
+          _t(
+              'By 2030, eliminate gender disparities and ensure equal access to education for the vulnerable.',
+              'Pada 2030, hapus kesenjangan gender dan pastikan akses setara ke pendidikan bagi kelompok rentan.'),
+        ),
+        (
+          '4.6',
+          _t('Universal Literacy & Numeracy',
+              'Literasi & Numerasi Universal'),
+          _t(
+              'By 2030, ensure all youth and most adults achieve literacy and numeracy.',
+              'Pada 2030, pastikan semua remaja dan sebagian besar dewasa menguasai literasi dan numerasi.'),
+        ),
+        (
+          '4.7',
+          _t('Education for Sustainable Development',
+              'Pendidikan untuk Pembangunan Berkelanjutan'),
+          _t(
+              'By 2030, ensure all learners gain knowledge and skills to promote sustainable development and global citizenship.',
+              'Pada 2030, pastikan semua pelajar memperoleh pengetahuan untuk mendorong pembangunan berkelanjutan dan kewargaan global.'),
+        ),
+        (
+          '4.8',
+          _t('Inclusive & Safe Schools',
+              'Sekolah yang Inklusif & Aman'),
+          _t(
+              'Build and upgrade education facilities that are child, disability, and gender sensitive and provide safe learning environments.',
+              'Bangun dan tingkatkan fasilitas pendidikan yang ramah anak, disabilitas, dan gender serta aman untuk belajar.'),
+        ),
+      ];
   String get creditsTitle => _t('Credits', 'Kredit');
   String get teamName => _t('Team Aities', 'Tim Aities');
   String get madeWith => _t('Made with Flutter & Flame 🎮',
@@ -191,4 +265,41 @@ class AppStrings {
   String get resetCollectionDesc => _t(
       'All facts you have collected will be deleted. This action cannot be undone.',
       'Semua fakta yang terkumpul akan dihapus. Tindakan ini tidak bisa dibatalkan.');
+
+  // ─── Achievements / Lencana ───────────
+  String get myAchievements => _t('Achievements', 'Lencana');
+  String achievementsProgress(int unlocked, int total) =>
+      _t('$unlocked of $total unlocked', '$unlocked dari $total terbuka');
+  String get achievementLocked => _t('Locked', 'Terkunci');
+
+  @override
+  String get achFirstGameTitle => _t('First Jump', 'Lompatan Pertama');
+  @override
+  String get achFirstGameDesc =>
+      _t('Play your first game', 'Mainkan game pertamamu');
+  @override
+  String get achScore500Title => _t('Rising Star', 'Bintang Naik');
+  @override
+  String get achScore500Desc => _t('Reach a score of 500', 'Capai skor 500');
+  @override
+  String get achScore1000Title => _t('Score Master', 'Master Skor');
+  @override
+  String get achScore1000Desc =>
+      _t('Reach a score of 1000', 'Capai skor 1000');
+  @override
+  String get achGames10Title => _t('Regular Player', 'Pemain Rajin');
+  @override
+  String get achGames10Desc => _t('Play 10 games', 'Mainkan 10 game');
+  @override
+  String get achGames50Title => _t('On Fire', 'Membara');
+  @override
+  String get achGames50Desc => _t('Play 50 games', 'Mainkan 50 game');
+  @override
+  String get achFacts10Title => _t('Curious Mind', 'Si Penasaran');
+  @override
+  String get achFacts10Desc => _t('Collect 10 facts', 'Kumpulkan 10 fakta');
+  @override
+  String get achFacts25Title => _t('Knowledge Collector', 'Kolektor Ilmu');
+  @override
+  String get achFacts25Desc => _t('Collect 25 facts', 'Kumpulkan 25 fakta');
 }

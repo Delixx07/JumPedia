@@ -113,7 +113,20 @@ class AboutScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
+
+                // ─── Daftar Target SDG 4 (4.1–4.8) ─
+                _SectionTitle(s.sdg4TargetsTitle),
+                const SizedBox(height: 12),
+                ...s.sdg4Targets.map((t) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _SdgTargetTile(
+                        code: t.$1,
+                        title: t.$2,
+                        desc: t.$3,
+                      ),
+                    )),
+                const SizedBox(height: 18),
 
                 // ─── Credits ──────────────────────
                 _SectionTitle(s.creditsTitle),
@@ -158,5 +171,69 @@ class _SectionTitle extends StatelessWidget {
             fontSize: 14,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.0));
+  }
+}
+
+/// Satu baris target SDG 4: badge kode (mis. 4.1) + judul + deskripsi.
+class _SdgTargetTile extends StatelessWidget {
+  final String code;
+  final String title;
+  final String desc;
+
+  const _SdgTargetTile({
+    required this.code,
+    required this.title,
+    required this.desc,
+  });
+
+  // Warna merah resmi SDG 4 (Quality Education).
+  static const Color _sdgRed = Color(0xFFC5192D);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bgMid,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.textLo.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: _sdgRed,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(code,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        color: AppColors.textHi,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                Text(desc,
+                    style: const TextStyle(
+                        color: AppColors.textLo,
+                        fontSize: 11.5,
+                        height: 1.35)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

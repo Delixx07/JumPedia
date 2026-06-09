@@ -372,6 +372,11 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
     _isPausedForFact = true;
     ref.read(factCheckpointProvider.notifier).next();
     showOverlay('funFact');
+    // Hentikan game loop SEPENUHNYA (bukan sekadar skip di update). Ini
+    // mencegah akumulasi dt: tanpa pauseEngine, waktu selama overlay terbuka
+    // menumpuk lalu di-apply sekaligus saat resume → player melonjak/teleport
+    // ("gerakan aneh"). pauseEngine membuat Flame me-reset dt saat resume.
+    pauseEngine();
     AppLogger.game('🎓 Fun fact triggered at score: $_lastFunFactScore');
   }
 
@@ -379,6 +384,8 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   void resumeFromFunFact() {
     _isPausedForFact = false;
     hideOverlay('funFact');
+
+    if (paused) resumeEngine();
     AppLogger.game('Game resumed after fun fact');
 
     // Prefetch fakta untuk checkpoint BERIKUTNYA di latar belakang, supaya
@@ -463,13 +470,9 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
   }
 
   /// Aktifkan boost pada player (dipanggil oleh Collectible globe).
+  /// Globe selalu memberi shield (speed boost dibuang karena terasa liar).
   void activatePlayerBoost() {
-    // Randomly pilih shield atau speed boost
-    if (_rng.nextBool()) {
-      player.activateShield(AppConstants.boostDuration);
-    } else {
-      player.activateSpeedBoost(AppConstants.boostDuration);
-    }
+    player.activateShield(AppConstants.boostDuration);
   }
 
   /// ═══════════════════════════════════════

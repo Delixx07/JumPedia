@@ -73,38 +73,31 @@ class TutorialOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
 
-                // ─── Item: Buku & Pensil ─────────
+                // ─── Item: Buku ──────────────────
                 const _TutorialItem(
-                  imagePaths: [
-                    'assets/collectibles/book.png',
-                    'assets/collectibles/pencil.png',
-                  ],
-                  title: 'Books & Pencils',
+                  imagePaths: ['assets/collectibles/book/book.png'],
+                  title: 'Books',
                   desc: '+${AppConstants.bookPoints} points each — '
-                      'collect them to boost your score!',
+                      'collect them to grow your knowledge & score!',
                   accent: AppColors.primary,
                 ),
                 const SizedBox(height: 10),
 
                 // ─── Item: Globe ─────────────────
                 const _TutorialItem(
-                  imagePaths: ['assets/collectibles/globe.png'],
+                  imagePaths: ['assets/collectibles/globe/globe.png'],
                   title: 'Globe',
-                  desc: 'Gives a shield or a speed boost for a few seconds.',
+                  desc: 'Gives a protective shield for a few seconds.',
                   accent: AppColors.primary,
                 ),
                 const SizedBox(height: 10),
 
-                // ─── Item: Sampah / Obstacle (semua bentuk) ─────
+                // ─── Item: Robot AI (obstacle bertema) ─────
                 const _TutorialItem(
-                  imagePaths: [
-                    'assets/images/obstacle/botol_plastik.png',
-                    'assets/images/obstacle/botol_kaleng.png',
-                    'assets/images/obstacle/kantong_plastik.png',
-                  ],
-                  title: 'Trash (Obstacles)',
-                  desc: 'Avoid all trash — each hit costs a heart '
-                      '(unless shielded).',
+                  imagePaths: ['assets/images/obstacle/obstacle_ai.png'],
+                  title: 'Lazy-Thinking AI',
+                  desc: 'Relying on AI to think for you makes your mind lazy. '
+                      'Dodge it — each hit costs a heart (unless shielded).',
                   accent: AppColors.danger,
                 ),
                 const SizedBox(height: 10),

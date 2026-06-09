@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_dimens.dart';
@@ -8,11 +7,18 @@ import '../constants/app_dimens.dart';
 /// APP THEME — JumPedia
 /// ═══════════════════════════════════════
 /// ThemeData terpusat: tipografi (Poppins heading + Nunito body),
-/// skema warna, dan tema komponen (input, snackbar, dialog, bottom sheet,
-/// nav bar) agar seluruh app konsisten tanpa styling manual berulang.
+/// skema warna, dan tema komponen (input, snackbar, dialog, bottom sheet).
+///
+/// Font dipakai LANGSUNG sebagai family Flutter (di-bundle di assets/fonts &
+/// didaftarkan di pubspec) — TIDAK lewat google_fonts. Ini mencegah error
+/// runtime "weight not found" / fetch internet yang sempat membuat app crash
+/// di perangkat fisik.
 
 class AppTheme {
   AppTheme._();
+
+  static const String _heading = 'Poppins';
+  static const String _body = 'Nunito';
 
   static ThemeData get light {
     const cs = ColorScheme.light(
@@ -24,22 +30,32 @@ class AppTheme {
       onSurface: AppColors.textHi,
     );
 
-    // Body pakai Nunito; heading pakai Poppins (di bawah).
-    final baseText = GoogleFonts.nunitoTextTheme();
-    final textTheme = baseText.copyWith(
-      displayLarge: GoogleFonts.poppins(
-          fontWeight: FontWeight.w900, color: AppColors.textHi),
-      headlineLarge: GoogleFonts.poppins(
-          fontWeight: FontWeight.w800, color: AppColors.textHi),
-      headlineMedium: GoogleFonts.poppins(
-          fontWeight: FontWeight.w800, color: AppColors.textHi),
-      titleLarge: GoogleFonts.poppins(
-          fontWeight: FontWeight.w700, color: AppColors.textHi),
-      titleMedium: GoogleFonts.poppins(
-          fontWeight: FontWeight.w600, color: AppColors.textHi),
-    ).apply(
+    // Body default Nunito; heading override ke Poppins.
+    final textTheme = const TextTheme().apply(
+      fontFamily: _body,
       bodyColor: AppColors.textHi,
       displayColor: AppColors.textHi,
+    ).copyWith(
+      displayLarge: const TextStyle(
+          fontFamily: _heading,
+          fontWeight: FontWeight.w900,
+          color: AppColors.textHi),
+      headlineLarge: const TextStyle(
+          fontFamily: _heading,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textHi),
+      headlineMedium: const TextStyle(
+          fontFamily: _heading,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textHi),
+      titleLarge: const TextStyle(
+          fontFamily: _heading,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textHi),
+      titleMedium: const TextStyle(
+          fontFamily: _heading,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textHi),
     );
 
     return ThemeData(
@@ -47,6 +63,7 @@ class AppTheme {
       brightness: Brightness.light,
       colorScheme: cs,
       scaffoldBackgroundColor: AppColors.scaffold,
+      fontFamily: _body,
       textTheme: textTheme,
       splashFactory: InkRipple.splashFactory,
 
@@ -76,8 +93,10 @@ class AppTheme {
       // ─── SnackBar ─────────────────────
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.textHi,
-        contentTextStyle: GoogleFonts.nunito(
-            color: Colors.white, fontWeight: FontWeight.w600),
+        contentTextStyle: const TextStyle(
+            fontFamily: _body,
+            color: Colors.white,
+            fontWeight: FontWeight.w600),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: AppDimens.brMd),
       ),
@@ -86,11 +105,13 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.bgMid,
         shape: RoundedRectangleBorder(borderRadius: AppDimens.brLg),
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: const TextStyle(
+            fontFamily: _heading,
             color: AppColors.textHi,
             fontSize: 18,
             fontWeight: FontWeight.w700),
-        contentTextStyle: GoogleFonts.nunito(color: AppColors.textLo),
+        contentTextStyle: const TextStyle(
+            fontFamily: _body, color: AppColors.textLo),
       ),
 
       // ─── Bottom sheet ─────────────────
