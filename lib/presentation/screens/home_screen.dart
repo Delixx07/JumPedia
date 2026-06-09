@@ -61,6 +61,8 @@ final _currentUserModelProvider = StreamProvider.autoDispose<UserModel?>((ref) {
 
 // State to indicate if a linking operation is in progress.
 final _isLinkingProvider = StateProvider<bool>((ref) => false);
+// State when deleting user's best score.
+final _isDeletingScoreProvider = StateProvider<bool>((ref) => false);
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -192,7 +194,7 @@ class HomeScreen extends ConsumerWidget {
                   // Logo ditarik ke atas untuk menutup ruang kosong transparan
                   // di bawah gambar mascot, agar tidak terlihat ada celah.
                   Transform.translate(
-                    offset: const Offset(0, -48),
+                    offset: const Offset(0, -20),
                     child: Image.asset(
                       'assets/images/logo_jumpedia.png',
                       width: 300, // logo brand diukur dari LEBAR (bukan tinggi)
@@ -201,12 +203,16 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  // SizedBox negatif tak ada; kompensasi geser -48 logo agar
-                  // stats tidak terlalu jauh: jarak dikecilkan.
+                  // Jarak ke stats dikecilkan untuk mengompensasi geser -48
+                  // pada logo (Transform.translate menyisakan ruang aslinya).
                   const SizedBox(height: 0),
 
                   // ─── Stats Cards ──────────────────────
-                  _StatsRow(statsAsync: statsAsync, s: s),
+                  _StatsRow(
+                    statsAsync: statsAsync,
+                    s: s,
+                    currentUid: ref.watch(currentUserUidProvider),
+                  ),
 
                   const SizedBox(height: 24),
 
@@ -363,13 +369,20 @@ class _HeaderBar extends ConsumerWidget {
 }
 
 /// Baris yang menampilkan 2 kartu statistik: best score & total games.
-class _StatsRow extends StatelessWidget {
+class _StatsRow extends ConsumerWidget {
   final AsyncValue<_DashboardStats?> statsAsync;
   final AppStrings s;
-  const _StatsRow({required this.statsAsync, required this.s});
+  final String? currentUid;
+
+  const _StatsRow({
+    required this.statsAsync,
+    required this.s,
+    this.currentUid,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDeleting = ref.watch(_isDeletingScoreProvider);
     return statsAsync.when(
       data: (stats) {
         final best = stats?.bestScore ?? 0;
@@ -382,6 +395,74 @@ class _StatsRow extends StatelessWidget {
                 color: AppColors.warn,
                 label: s.bestScore,
                 value: best.toString(),
+                trailing: (currentUid != null && best > 0)
+                    ? SizedBox(
+                        height: 36,
+                        width: 36,
+                        child: isDeleting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: AppColors.warn),
+                              )
+                            : IconButton(
+                                tooltip: 'Hapus skor tertinggi',
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.delete_outline_rounded,
+                                    color: AppColors.warn),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title:
+                                          const Text('Hapus skor tertinggi?'),
+                                      content: const Text(
+                                          'Skor ini akan dihapus dari leaderboard. Lanjutkan?'),
+                                      actions: [
+                                        TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(false),
+                                            child: const Text('Batal')),
+                                        TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(true),
+                                            child: const Text('Hapus')),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm != true) return;
+                                  try {
+                                    ref
+                                        .read(_isDeletingScoreProvider.notifier)
+                                        .state = true;
+                                    final scoreService = ScoreService();
+                                    await scoreService.deleteScore(currentUid!);
+                                    ref.invalidate(_dashboardStatsProvider);
+                                    await ref
+                                        .read(_dashboardStatsProvider.future);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Skor tertinggi dihapus.')));
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Gagal menghapus skor.')));
+                                    }
+                                  } finally {
+                                    ref
+                                        .read(_isDeletingScoreProvider.notifier)
+                                        .state = false;
+                                  }
+                                },
+                              ),
+                      )
+                    : null,
               ),
             ),
             const SizedBox(width: 12),
@@ -442,57 +523,70 @@ class _StatCard extends StatelessWidget {
   final Color color;
   final String label;
   final String value;
+  final Widget? trailing;
 
   const _StatCard({
     required this.icon,
     required this.color,
     required this.label,
     required this.value,
+    this.trailing,
   });
 
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       borderColor: color.withValues(alpha: 0.45),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: AppColors.textLo,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.4,
-                  ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: AppColors.textHi,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textLo,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        color: AppColors.textHi,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          // Tombol aksi (mis. hapus skor) melayang di pojok kanan-atas
+          // agar tidak menghimpit label & angka.
+          if (trailing != null)
+            Positioned(top: -6, right: -6, child: trailing!),
         ],
       ),
     );
