@@ -39,6 +39,8 @@ final _bestScoreProvider = FutureProvider.autoDispose<int>((ref) async {
   return ScoreService().getUserBestScore(uid);
 });
 
+final _isLinkingProvider = StateProvider.autoDispose<bool>((ref) => false);
+
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -108,8 +110,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final userAsync = ref.watch(_userProfileProvider);
     final s = ref.watch(uiStringsProvider);
-    final authUser = FirebaseAuth.instance.currentUser;
-    final isAnonymous = authUser?.isAnonymous ?? true;
+    final authUser = ref.watch(authStateProvider).value;
+    final isAnonymous = ref.watch(isGuestProvider);
+    final isLinking = ref.watch(_isLinkingProvider);
 
     return Scaffold(
       body: Container(
@@ -129,23 +132,88 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.account_circle_outlined, size: 80, color: AppColors.primary),
+                        const Icon(Icons.account_circle_outlined,
+                            size: 80, color: AppColors.primary),
                         const SizedBox(height: 16),
                         Text(
-                          s.googleOnlyTitle,
+                          isAnonymous ? s.guestAccountTitle : s.googleOnlyTitle,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.textHi, fontSize: 20, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: AppColors.textHi,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          s.googleOnlyDesc,
+                          isAnonymous ? s.guestAccountDesc : s.googleOnlyDesc,
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: AppColors.textLo),
                         ),
                         const SizedBox(height: 32),
+                        if (isAnonymous) ...[
+                          SdgButton(
+                            text: s.linkNowGoogle,
+                            icon: Icons.link,
+                            isLoading: isLinking,
+                            onPressed: () async {
+                              ref.read(_isLinkingProvider.notifier).state =
+                                  true;
+                              try {
+                                final authService =
+                                    ref.read(authServiceProvider);
+                                final result =
+                                    await authService.linkGuestToGoogle();
+                                if (result != null) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(s.accountLinked),
+                                          backgroundColor: AppColors.success),
+                                    );
+                                  }
+                                }
+                              } on FirebaseAuthException catch (e) {
+                                if (context.mounted) {
+                                  if (e.code == 'credential-already-in-use') {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(s.googleInUse),
+                                          backgroundColor: AppColors.danger),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Error linking account: ${e.message}'),
+                                          backgroundColor: AppColors.danger),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content:
+                                            Text('Error linking account: $e'),
+                                        backgroundColor: AppColors.danger),
+                                  );
+                                }
+                              } finally {
+                                ref.read(_isLinkingProvider.notifier).state =
+                                    false;
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         SdgButton(
-                          text: s.loginWithGoogleNow,
+                          text: isAnonymous
+                              ? s.loginWithGoogleNow
+                              : s.loginWithGoogleNow,
                           icon: Icons.login,
+                          style: isAnonymous
+                              ? SdgButtonStyle.secondary
+                              : SdgButtonStyle.primary,
                           onPressed: () => context.go('/login'),
                         ),
                         const SizedBox(height: 12),

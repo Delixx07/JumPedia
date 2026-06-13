@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_dimens.dart';
 import '../../core/i18n/app_strings.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/ui_language_provider.dart';
@@ -66,7 +65,7 @@ final _currentUserModelProvider = StreamProvider.autoDispose<UserModel?>((ref) {
 });
 
 // State to indicate if a linking operation is in progress.
-final _isLinkingProvider = StateProvider<bool>((ref) => false);
+// (Moved to profile_screen.dart or removed if not needed)
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -75,14 +74,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(_dashboardStatsProvider);
     final s = ref.watch(uiStringsProvider);
-    final authState = ref.watch(authStateProvider);
-    final isAnon = authState.when(
-      data: (u) => u?.isAnonymous ?? false,
-      loading: () => false,
-      error: (_, __) => false,
-    );
-    final isLinking = ref.watch(_isLinkingProvider);
-
+    
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -110,75 +102,6 @@ class HomeScreen extends ConsumerWidget {
                   const _HeaderBar(),
 
                   const SizedBox(height: 24),
-
-                  // If the current user is anonymous, show a prompt to link account
-                  if (isAnon) ...[
-                    AppCard(
-                      padding: const EdgeInsets.all(AppDimens.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(s.guestAccountDesc,
-                              style: const TextStyle(color: AppColors.textLo)),
-                          const SizedBox(height: 8),
-                          SdgButton(
-                            text: s.linkNowGoogle,
-                            icon: Icons.link,
-                            isLoading: isLinking,
-                            onPressed: () async {
-                              ref.read(_isLinkingProvider.notifier).state =
-                                  true;
-                              try {
-                                final authService =
-                                    ref.read(authServiceProvider);
-                                final result =
-                                    await authService.linkGuestToGoogle();
-                                if (result != null) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(s.accountLinked),
-                                          backgroundColor: AppColors.success),
-                                    );
-                                  }
-                                }
-                              } on FirebaseAuthException catch (e) {
-                                if (context.mounted) {
-                                  if (e.code == 'credential-already-in-use') {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(s.googleInUse),
-                                          backgroundColor: AppColors.danger),
-                                    );
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(
-                                              'Error linking account: ${e.message}'),
-                                          backgroundColor: AppColors.danger),
-                                    );
-                                  }
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content:
-                                            Text('Error linking account: $e'),
-                                        backgroundColor: AppColors.danger),
-                                  );
-                                }
-                              } finally {
-                                ref.read(_isLinkingProvider.notifier).state =
-                                    false;
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
 
                   // ─── Hero Mascot ──────────────────────
                   // Mascot 3D karakter brand JumPedia. Pakai cacheWidth
@@ -369,6 +292,33 @@ class _HeaderBar extends ConsumerWidget {
           tooltip: s.logout,
           icon: const Icon(Icons.logout_rounded, color: AppColors.textLo),
           onPressed: () async {
+            final authUser = ref.read(authStateProvider).value;
+            final isAnon = authUser?.isAnonymous ?? false;
+
+            if (isAnon) {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(s.logout),
+                  content: Text('${s.guestNoProgress}\n\n${s.guestAccountDesc}'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: Text(s.cancel),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: Text(
+                        s.logout,
+                        style: const TextStyle(color: AppColors.danger),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm != true) return;
+            }
+
             final authService = ref.read(authServiceProvider);
             // Stop background music immediately on logout.
             await AudioService.stopBgm();
