@@ -129,9 +129,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final isGuest = ref.read(isGuestProvider);
 
     // Fire-and-forget save score — JANGAN await sebelum navigate.
-    // Skor TAMU (anonymous) TIDAK disimpan ke leaderboard/achievement —
-    // hanya akun Google yang masuk papan skor.
-    if (uid != null && !isGuest) {
+    if (uid != null) {
       final scoreService = ScoreService();
       scoreService
           .saveScore(uid, score)

@@ -164,6 +164,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 final result =
                                     await authService.linkGuestToGoogle();
                                 if (result != null) {
+                                  // Invalidate providers to refresh UI state
+                                  ref.invalidate(authStateProvider);
+                                  ref.invalidate(isGuestProvider);
+                                  ref.invalidate(_userProfileProvider);
+                                  
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -206,17 +211,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                           const SizedBox(height: 12),
                         ],
-                        SdgButton(
-                          text: isAnonymous
-                              ? s.loginWithGoogleNow
-                              : s.loginWithGoogleNow,
-                          icon: Icons.login,
-                          style: isAnonymous
-                              ? SdgButtonStyle.secondary
-                              : SdgButtonStyle.primary,
-                          onPressed: () => context.go('/login'),
-                        ),
-                        const SizedBox(height: 12),
                         SdgButton(
                           text: s.backToHome,
                           icon: Icons.home,
