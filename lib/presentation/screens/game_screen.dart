@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -224,6 +226,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     FunFactOverlay(game: game as GameWorld),
                 'tutorial': (context, game) =>
                     TutorialOverlay(onStart: _dismissTutorial),
+                'countdown': (context, game) =>
+                    _CountdownOverlay(game: game as GameWorld),
               },
               // Hanya 'hud' di initial. 'tutorial' ditambahkan manual di
               // initState — kalau dimasukkan ke initialActiveOverlays, rebuild
@@ -708,6 +712,66 @@ class _GameOverOverlay extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Overlay Countdown 3-2-1 sebelum game dilanjutkan.
+/// Muncul setelah Fun Fact ditutup agar player tidak kaget.
+class _CountdownOverlay extends StatefulWidget {
+  final GameWorld game;
+  const _CountdownOverlay({required this.game});
+
+  @override
+  State<_CountdownOverlay> createState() => _CountdownOverlayState();
+}
+
+class _CountdownOverlayState extends State<_CountdownOverlay> {
+  int _count = 3;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_count > 1) {
+        setState(() => _count--);
+      } else {
+        _timer?.cancel();
+        widget.game.resumeAfterCountdown();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black26,
+      child: Center(
+        child: Text(
+          '$_count',
+          style: const TextStyle(
+            color: AppColors.warn,
+            fontSize: 120,
+            fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic,
+            shadows: [
+              Shadow(
+                blurRadius: 20,
+                color: Colors.black54,
+                offset: Offset(4, 4),
               ),
             ],
           ),

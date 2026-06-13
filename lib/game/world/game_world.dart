@@ -382,16 +382,21 @@ class GameWorld extends FlameGame with HasCollisionDetection, TapCallbacks {
 
   /// Resume game setelah fun fact ditutup.
   void resumeFromFunFact() {
-    _isPausedForFact = false;
     hideOverlay('funFact');
-
-    if (paused) resumeEngine();
-    AppLogger.game('Game resumed after fun fact');
+    showOverlay('countdown');
 
     // Prefetch fakta untuk checkpoint BERIKUTNYA di latar belakang, supaya
     // saat checkpoint itu tercapai fakta sudah siap (tanpa jeda loading).
     final current = ref.read(factCheckpointProvider);
     _prefetchFact(current + 1);
+  }
+
+  /// Dipanggil oleh countdown overlay setelah hitungan selesai.
+  void resumeAfterCountdown() {
+    _isPausedForFact = false;
+    hideOverlay('countdown');
+    if (paused) resumeEngine();
+    AppLogger.game('Game resumed after countdown');
   }
 
   /// Hangatkan cache [aiFunFactProvider] untuk nomor [checkpoint] tertentu.
