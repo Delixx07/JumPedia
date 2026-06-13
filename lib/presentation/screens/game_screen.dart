@@ -23,6 +23,8 @@ import '../../services/achievement_service.dart';
 import '../../models/achievement_model.dart';
 import '../../providers/auth_provider.dart';
 
+import '../../services/audio_service.dart';
+
 /// Game Screen — Wrapper untuk GameWidget dari Flame.
 /// Menyediakan kontrol on-screen (mobile) dan keyboard (desktop).
 class GameScreen extends ConsumerStatefulWidget {
@@ -738,10 +740,12 @@ class _CountdownOverlayState extends State<_CountdownOverlay> {
   @override
   void initState() {
     super.initState();
+    AudioService.playTick(); // Play sound on 3
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       if (_count > 1) {
         setState(() => _count--);
+        AudioService.playTick(); // Play sound on 2 and 1
       } else {
         _timer?.cancel();
         widget.game.resumeAfterCountdown();

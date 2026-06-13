@@ -21,6 +21,7 @@ class AudioService {
 
   static const String _jump = 'jump_sound.mp3';
   static const String _death = 'death_sound.mp3';
+  static const String _tick = 'tick.mp3';
 
   /// File musik latar. Letakkan di assets/audio/bgm.mp3 agar berbunyi.
   /// Jika file belum ada, BGM diam tanpa membuat app error.
@@ -45,9 +46,9 @@ class AudioService {
   static Future<void> preload() async {
     if (_ready) return;
     try {
-      await FlameAudio.audioCache.loadAll([_jump, _death]);
+      await FlameAudio.audioCache.loadAll([_jump, _death, _tick]);
       _ready = true;
-      AppLogger.game('Audio preloaded: jump & death');
+      AppLogger.game('Audio preloaded: jump, death, & tick');
     } catch (e) {
       AppLogger.warning('Gagal preload audio: $e', tag: 'Audio');
     }
@@ -116,6 +117,9 @@ class AudioService {
 
   /// Putar suara kalah/mati (dipanggil saat game over).
   static void playDeath() => _play(_death, weight: 1.0);
+
+  /// Putar suara bip countdown.
+  static void playTick() => _play(_tick, weight: 0.6);
 
   static void _play(String file, {double weight = 1.0}) {
     if (_muted || _sfxVolume <= 0) return;
