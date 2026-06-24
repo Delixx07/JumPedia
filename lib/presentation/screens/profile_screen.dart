@@ -15,6 +15,7 @@ import '../../providers/achievement_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/ui_language_provider.dart';
 import '../widgets/state_views.dart';
+import '../../services/notification_service.dart';
 import '../../services/profile_photo_service.dart';
 import '../../services/score_service.dart';
 import '../../services/user_service.dart';
@@ -475,9 +476,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       value: user.notificationsEnabled,
                       activeThumbColor: AppColors.primary,
                       contentPadding: EdgeInsets.zero,
-                      onChanged: (val) {
-                        UserService().updateNotificationPreference(user.uid, val);
+                      onChanged: (val) async {
+                        await UserService()
+                            .updateNotificationPreference(user.uid, val);
+                        // Nyalakan / matikan pengingat harian sesuai pilihan.
+                        final notif = NotificationService();
+                        if (val) {
+                          await notif.scheduleDailyReminder(
+                            title: s.reminderTitle,
+                            body: s.reminderBody,
+                          );
+                        } else {
+                          await notif.cancelDailyReminder();
+                        }
                       },
+                    ),
+
+                    // Tombol uji — munculkan notifikasi saat itu juga (demo).
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          await NotificationService().showTestNotification(
+                            title: s.reminderTitle,
+                            body: s.reminderBody,
+                          );
+                        },
+                        icon: const Icon(Icons.notifications_active_outlined,
+                            color: AppColors.primary, size: 18),
+                        label: Text(
+                          s.testNotification,
+                          style: const TextStyle(color: AppColors.primary),
+                        ),
+                      ),
                     ),
 
                     const SizedBox(height: 40),

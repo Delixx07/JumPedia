@@ -213,6 +213,13 @@ class GeminiFunFactService {
         'Satu awan bisa berbobot lebih dari satu juta kilogram — seberat '
             '100 ekor gajah!',
       ),
+      (
+        'animals',
+        'Some dinosaurs were actually smaller than a chicken, while others '
+            'were taller than a house!',
+        'Beberapa dinosaurus ternyata lebih kecil dari ayam, sementara yang '
+            'lain lebih tinggi dari rumah!',
+      ),
     ];
 
     // Pilih entri yang teksnya belum baru saja muncul, bila memungkinkan.

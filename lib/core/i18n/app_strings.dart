@@ -205,6 +205,15 @@ class AppStrings implements AchievementStrings {
       _t('Educational Notifications', 'Notifikasi Edukasi');
   String get eduNotificationsDesc =>
       _t('Receive daily SDG 4 fun facts', 'Terima fakta SDG 4 harian');
+  // Pesan pengingat harian (lokal) + tombol uji notifikasi.
+  String get reminderTitle =>
+      _t('Time to learn! 🎓', 'Waktunya belajar! 🎓');
+  String get reminderBody => _t(
+        'Come play again — there are still fun facts waiting for you!',
+        'Ayo main lagi — masih ada fakta seru yang menunggumu!',
+      );
+  String get testNotification =>
+      _t('Test Notification', 'Tes Notifikasi');
   String get saveChanges => _t('Save Changes', 'Simpan Perubahan');
   String get chooseAvatar => _t('Choose Your Avatar', 'Pilih Avatar Kamu');
   String get uploadPhoto => _t('Upload Photo', 'Unggah Foto');

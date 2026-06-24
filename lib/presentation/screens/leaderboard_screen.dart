@@ -13,8 +13,10 @@ import '../widgets/state_views.dart';
 final topScoresProvider = FutureProvider<List<LeaderboardModel>>((ref) async {
   final scoreService = ScoreService();
   final uid = ref.watch(currentUserUidProvider);
-  if (uid != null) {
-    // Sinkronisasi manual untuk user saat ini sebelum menampilkan papan skor.
+  final isGuest = ref.watch(isGuestProvider);
+  // Sinkronisasi manual untuk user saat ini sebelum menampilkan papan skor.
+  // Dilewati untuk TAMU agar skornya tidak ikut masuk leaderboard global.
+  if (uid != null && !isGuest) {
     await scoreService.syncUserLeaderboardFromHistory(uid);
   }
   return scoreService.getTopScores(limit: 10);

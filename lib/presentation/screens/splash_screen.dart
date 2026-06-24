@@ -1,24 +1,27 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../providers/auth_provider.dart';
 
 /// ═══════════════════════════════════════
 /// SPLASH SCREEN — JumPedia
 /// ═══════════════════════════════════════
 /// Layar pembuka dengan animasi logo dan nama game.
-/// Otomatis navigasi ke login/home setelah 3 detik.
+/// Setelah 3 detik, arahkan ke /home jika user sudah login
+/// (session Firebase masih aktif), atau ke /login jika belum.
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -43,11 +46,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigasi otomatis setelah 3 detik
+    // Navigasi otomatis setelah 3 detik. Hormati session yang masih aktif:
+    // jika user sudah login (Google atau Tamu), langsung ke /home tanpa
+    // memaksa lewat layar login lagi.
     Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        context.go('/login');
-      }
+      if (!mounted) return;
+      final isLoggedIn = ref.read(isLoggedInProvider);
+      context.go(isLoggedIn ? '/home' : '/login');
     });
   }
 

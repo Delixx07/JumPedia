@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/api_keys.dart';
+import 'core/i18n/app_strings.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/logger.dart';
 import 'firebase_options.dart';
@@ -150,6 +151,14 @@ Future<void> mainCommon() async {
   AudioService.setMuted(prefs.getBool('audio_muted') ?? false);
   HapticService.setEnabled(prefs.getBool('haptic_enabled') ?? true);
 
+  // Jadwalkan pengingat harian (lokal) memakai bahasa UI tersimpan. Muncul
+  // tiap hari pukul 10:20 mengajak pemain kembali bermain. Penjadwalan aman
+  // dipanggil tiap startup karena memakai ID tetap (akan ditimpa, bukan dobel).
+  final strings = AppStrings(UiLanguage.fromStorage(prefs.getString('ui_language')));
+  await notificationService.scheduleDailyReminder(
+    title: strings.reminderTitle,
+    body: strings.reminderBody,
+  );
 
   AppLogger.info('App started: ${AppConfig.appLabel} (isDev: ${AppConfig.isDev})');
 

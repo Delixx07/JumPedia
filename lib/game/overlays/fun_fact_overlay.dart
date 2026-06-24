@@ -14,14 +14,23 @@ import '../world/game_world.dart';
 /// mencapai checkpoint (kelipatan skor). Fakta di-generate oleh AI (Gemini)
 /// secara real-time. Game di-pause selama overlay ditampilkan.
 
-class FunFactOverlay extends ConsumerWidget {
+class FunFactOverlay extends ConsumerStatefulWidget {
   /// Reference ke GameWorld untuk resume game setelah overlay ditutup.
   final GameWorld game;
 
   const FunFactOverlay({super.key, required this.game});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FunFactOverlay> createState() => _FunFactOverlayState();
+}
+
+class _FunFactOverlayState extends ConsumerState<FunFactOverlay> {
+  /// Checkpoint yang faktanya sudah disimpan ke koleksi — mencegah
+  /// collectFact dipanggil berulang tiap kali overlay ter-rebuild.
+  int? _savedCheckpoint;
+
+  @override
+  Widget build(BuildContext context) {
     // Nomor checkpoint aktif → memicu fakta AI baru pada tiap checkpoint.
     final checkpoint = ref.watch(factCheckpointProvider);
     final factAsync = ref.watch(aiFunFactProvider(checkpoint));
@@ -110,16 +119,21 @@ class FunFactOverlay extends ConsumerWidget {
                   style: const TextStyle(color: AppColors.danger),
                 ),
                 data: (fact) {
-                  // Simpan fakta AI ke koleksi user.
-                  // CRUD: CREATE — fact ini masuk subcollection collected_facts.
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final uid = ref.read(currentUserUidProvider);
-                    if (uid != null) {
-                      ref
-                          .read(collectedFactServiceProvider)
-                          .collectFact(uid, fact);
-                    }
-                  });
+                  // Simpan fakta AI ke koleksi user — HANYA sekali per
+                  // checkpoint. Tanpa guard ini, tiap rebuild overlay memicu
+                  // read Firestore yang sia-sia (collectFact akhirnya skip).
+                  if (_savedCheckpoint != checkpoint) {
+                    _savedCheckpoint = checkpoint;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      final uid = ref.read(currentUserUidProvider);
+                      if (uid != null) {
+                        // CRUD: CREATE — masuk subcollection collected_facts.
+                        ref
+                            .read(collectedFactServiceProvider)
+                            .collectFact(uid, fact);
+                      }
+                    });
+                  }
 
                   return Text(
                     fact.content,
@@ -143,7 +157,7 @@ class FunFactOverlay extends ConsumerWidget {
                 child: ElevatedButton(
                   onPressed: factAsync.isLoading
                       ? null
-                      : () => game.resumeFromFunFact(),
+                      : () => widget.game.resumeFromFunFact(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.warn,
                     foregroundColor: AppColors.bgTop,

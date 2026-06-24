@@ -133,10 +133,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final isGuest = ref.read(isGuestProvider);
 
     // Fire-and-forget save score — JANGAN await sebelum navigate.
+    // Skor TAMU dicatat di history pribadi tapi tidak masuk leaderboard global.
     if (uid != null) {
       final scoreService = ScoreService();
       scoreService
-          .saveScore(uid, score)
+          .saveScore(uid, score, addToLeaderboard: !isGuest)
           .then((_) => scoreService.incrementGamesPlayed(uid))
           .then((_) => _evaluateAchievements(uid))
           .catchError((Object e) {

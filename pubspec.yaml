@@ -44,8 +44,11 @@ dependencies:
   # Google Sign-In
   google_sign_in: ^6.2.1
 
-  # Local Notifications (foreground FCM)
+  # Local Notifications (foreground FCM + pengingat harian terjadwal)
   flutter_local_notifications: ^17.2.1
+
+  # Zona waktu — diperlukan untuk menjadwalkan notifikasi harian (zonedSchedule)
+  timezone: ^0.9.4
 
   # Accelerometer / Tilt controls
   sensors_plus: ^4.0.2

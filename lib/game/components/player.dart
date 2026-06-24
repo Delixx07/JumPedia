@@ -18,7 +18,7 @@ import 'platform.dart' as game_platform;
 /// PLAYER COMPONENT — JumPedia
 /// ═══════════════════════════════════════
 /// SpriteComponent untuk karakter pemain.
-/// Mendukung kontrol tap (kiri/kanan) dan accelerometer (tilt).
+/// Mendukung kontrol tap (kiri/kanan), tombol on-screen, dan keyboard.
 /// Collision callbacks untuk interaksi dengan platform, collectible, dan obstacle.
 
 enum PlayerState { idle, jumping, landed, hurt, collecting, shielded }
@@ -33,6 +33,11 @@ class Player extends SpriteComponent
 
   /// Apakah player memiliki shield aktif (kebal dari obstacle).
   bool hasShield = false;
+
+  /// Token untuk timer shield. Tiap aktivasi shield menaikkan token; timer
+  /// lama yang sudah kedaluwarsa membandingkan token-nya — jika sudah beda
+  /// (ada globe baru diambil), timer lama tidak mematikan shield baru.
+  int _shieldToken = 0;
 
   /// Arah horizontal: -1 = kiri, 0 = diam, 1 = kanan.
   int _horizontalDirection = 0;
@@ -223,16 +228,6 @@ class Player extends SpriteComponent
   }
 
   /// ═══════════════════════════════════════
-  /// ACCELEROMETER CONTROL
-  /// ═══════════════════════════════════════
-  /// Dipanggil dari GameWorld saat ada data accelerometer.
-  /// [tilt] negatif = tilt kiri, positif = tilt kanan.
-  void applyAccelerometer(double tilt) {
-    _horizontalDirection = 0;
-    velocity.x = -tilt * AppConstants.accelerometerSensitivity;
-  }
-
-  /// ═══════════════════════════════════════
   /// JUMP
   /// ═══════════════════════════════════════
   /// Player melompat otomatis saat menyentuh platform.
@@ -251,8 +246,14 @@ class Player extends SpriteComponent
   void activateShield(double duration) {
     hasShield = true;
     _setState(PlayerState.shielded);
-    Future.delayed(Duration(seconds: duration.toInt()), () {
+
+    // Naikkan token: tiap globe baru "membatalkan" timer shield sebelumnya.
+    final token = ++_shieldToken;
+    // Pakai milidetik agar durasi pecahan (mis. 2.5s) tidak terpotong.
+    Future.delayed(Duration(milliseconds: (duration * 1000).round()), () {
       if (!isMounted) return;
+      // Hanya matikan shield jika token masih sama (tidak ada globe baru).
+      if (token != _shieldToken) return;
       hasShield = false;
       _resolveState();
       AppLogger.game('Shield deactivated');

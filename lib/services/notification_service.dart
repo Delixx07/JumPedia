@@ -1,6 +1,8 @@
 ﻿import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 import '../core/constants/firestore_paths.dart';
 import '../core/utils/logger.dart';
@@ -35,11 +37,19 @@ class NotificationService {
     importance: Importance.high,
   );
 
+  /// ID tetap untuk notifikasi pengingat harian. Dipakai saat menjadwalkan
+  /// maupun membatalkan, supaya tidak terjadi penjadwalan ganda.
+  static const int _dailyReminderId = 1001;
+
   /// ═══════════════════════════════════════
   /// INITIALIZE
   /// ═══════════════════════════════════════
   /// Panggil method ini di main() setelah Firebase.initializeApp().
   Future<void> initialize() async {
+    // Inisialisasi database zona waktu — wajib sebelum zonedSchedule dipakai
+    // untuk menjadwalkan notifikasi harian.
+    tz.initializeTimeZones();
+
     // Register background handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
@@ -189,5 +199,104 @@ class NotificationService {
     } catch (e, st) {
       AppLogger.error('Error saving FCM token', error: e, stackTrace: st);
     }
+  }
+
+  /// ═══════════════════════════════════════
+  /// SCHEDULE DAILY REMINDER (lokal)
+  /// ═══════════════════════════════════════
+  /// Menjadwalkan notifikasi pengingat yang muncul SETIAP HARI pada jam
+  /// [hour]:[minute] (waktu lokal device). Tidak butuh server — murni lokal.
+  /// Aman dipanggil berulang: penjadwalan lama dengan ID sama akan ditimpa.
+  Future<void> scheduleDailyReminder({
+    required String title,
+    required String body,
+    int hour = 10,
+    int minute = 20,
+  }) async {
+    // Hitung waktu tayang berikutnya pada jam:menit yang diminta. Jika jam
+    // tersebut hari ini sudah lewat, geser ke hari berikutnya.
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    await _localNotifications.zonedSchedule(
+      _dailyReminderId,
+      title,
+      body,
+      scheduled,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
+          icon: '@mipmap/ic_launcher',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      // inexact: tidak butuh izin SCHEDULE_EXACT_ALARM (Android 12+), jadi
+      // notifikasi tetap muncul tanpa minta izin alarm khusus.
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      // Interpretasi waktu untuk iOS (wajib diisi oleh plugin).
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      // Ulang tiap hari pada jam:menit yang sama.
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+
+    AppLogger.info('Pengingat harian dijadwalkan pukul '
+        '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+  }
+
+  /// Batalkan pengingat harian (mis. saat user mematikan toggle notifikasi).
+  Future<void> cancelDailyReminder() async {
+    await _localNotifications.cancel(_dailyReminderId);
+    AppLogger.info('Pengingat harian dibatalkan');
+  }
+
+  /// ═══════════════════════════════════════
+  /// TEST NOTIFICATION
+  /// ═══════════════════════════════════════
+  /// Munculkan notifikasi SAAT ITU JUGA — untuk menguji/demo bahwa
+  /// notifikasi bekerja tanpa menunggu jadwal harian.
+  Future<void> showTestNotification({
+    required String title,
+    required String body,
+  }) async {
+    await _localNotifications.show(
+      9999,
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
+          icon: '@mipmap/ic_launcher',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+    );
+    AppLogger.info('Notifikasi uji ditampilkan');
   }
 }

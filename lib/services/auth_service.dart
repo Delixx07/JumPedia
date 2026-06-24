@@ -168,15 +168,6 @@ class AuthService {
   }
 
   /// ═══════════════════════════════════════
-  /// CREATE USER DOCUMENT
-  /// ═══════════════════════════════════════
-  /// // CRUD: CREATE — Buat dokumen baru di koleksi 'users' saat login pertama.
-  Future<void> _createUserDocument(User user) async {
-    // Memanggil _ensureUserDocument agar logika konsisten
-    await _ensureUserDocument(user);
-  }
-
-  /// ═══════════════════════════════════════
   /// SIGN IN AS GUEST (anonymous)
   /// ═══════════════════════════════════════
   /// Login tanpa akun — progress tersimpan di Firestore selama device

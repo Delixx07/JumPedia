@@ -73,8 +73,4 @@ class AppConstants {
 
   /// Probabilitas spawn obstacle di antara platform (0.0 - 1.0).
   static const double obstacleSpawnChance = 0.15;
-
-  // ─── Accelerometer ────────────────────
-  /// Sensitivitas accelerometer untuk kontrol tilt.
-  static const double accelerometerSensitivity = 15.0;
 }

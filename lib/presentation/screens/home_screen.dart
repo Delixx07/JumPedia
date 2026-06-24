@@ -8,7 +8,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/ui_language_provider.dart';
 import '../widgets/app_card.dart';
 import '../widgets/state_views.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/score_service.dart';
 import '../../services/user_service.dart';
 import '../../services/audio_service.dart';

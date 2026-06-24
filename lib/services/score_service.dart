@@ -19,11 +19,19 @@ class ScoreService {
   /// ═══════════════════════════════════════
   /// // CRUD: UPDATE — Update atau buat dokumen di koleksi 'leaderboard'.
   /// Menyimpan skor tertinggi dari sesi permainan yang baru selesai.
-  Future<void> saveScore(String userId, int score) async {
+  ///
+  /// [addToLeaderboard] false untuk user TAMU (anonymous): skornya tetap
+  /// dicatat di score_history pribadi, tapi TIDAK masuk papan skor global
+  /// agar leaderboard hanya berisi akun ber-identitas.
+  Future<void> saveScore(
+    String userId,
+    int score, {
+    bool addToLeaderboard = true,
+  }) async {
     // Cek dulu apakah skor baru lebih baik dari skor lama
-    final currentBest = await getUserBestScore(userId);
+    final currentBest = addToLeaderboard ? await getUserBestScore(userId) : 0;
 
-    if (score > currentBest) {
+    if (addToLeaderboard && score > currentBest) {
       // Buat reference ke dokumen user untuk disimpan sebagai DocumentReference
       final userRef =
           _firestore.collection(FirestorePaths.usersCollection).doc(userId);
